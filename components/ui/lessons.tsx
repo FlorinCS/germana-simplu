@@ -1,153 +1,85 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   DndContext,
+  closestCenter,
   useDraggable,
   useDroppable,
-  closestCenter,
 } from "@dnd-kit/core";
 import {
   FaBaby,
   FaUserGraduate,
   FaBrain,
+  FaComments,
   FaBook,
   FaVolumeUp,
-  FaComments,
 } from "react-icons/fa";
 
-// LEVELS
+interface StepTheory {
+  type: "theory";
+  content: { text: string; image?: string };
+}
+interface StepInput {
+  type: "exercise";
+  content: { question: string; answer: string; type: "input" };
+}
+interface StepMCQ {
+  type: "exercise";
+  content: {
+    question: string;
+    options: string[];
+    correctOption: string;
+    type: "multiple-choice";
+  };
+}
+interface StepMatching {
+  type: "exercise";
+  content: {
+    question?: string;
+    pairs: { left: string; right: string }[];
+    type: "matching";
+  };
+}
+type LessonStep = StepTheory | StepInput | StepMCQ | StepMatching;
+
+interface Lesson {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  steps: LessonStep[];
+}
+
 const levels = [
-  {
-    level: "A1",
-    title: "Începător",
-    description: "Învățați expresii de bază, saluturi și vocabular uzual.",
-    icon: <FaBaby className="text-4xl text-teal-600" />,
-    bg: "bg-teal-50",
-    image:
-      "https://images.unsplash.com/photo-1610381057235-b6187a44ef29?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    level: "A2",
-    title: "Elementar",
-    description: "Înțelegeți texte scurte și comunicați în situații cotidiene.",
-    icon: <FaUserGraduate className="text-4xl text-teal-600" />,
-    bg: "bg-yellow-50",
-    image:
-      "https://images.unsplash.com/photo-1581092160613-6c7c88c7a9c6?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    level: "B1",
-    title: "Intermediar",
-    description: "Exprimați-vă opiniile și discutați subiecte familiare.",
-    icon: <FaBrain className="text-4xl text-teal-600" />,
-    bg: "bg-blue-50",
-    image:
-      "https://images.unsplash.com/photo-1559028012-481c04fa7023?auto=format&fit=crop&w=800&q=80",
-  },
+  { level: "A1", title: "Începător", icon: <FaBaby className="text-4xl text-teal-600" />, bg: "bg-teal-50", image: /*...*/ "" },
+  { level: "A2", title: "Elementar", icon: <FaUserGraduate className="text-4xl text-teal-600" />, bg: "bg-yellow-50", image: "" },
+  { level: "B1", title: "Intermediar", icon: <FaBrain className="text-4xl text-teal-600" />, bg: "bg-blue-50", image: "" },
 ];
 
-// MOCK PROGRESS
+// Simulated progress loader
 const getProgress = (id: string) => {
   const xp = Math.floor(Math.random() * 10000);
-  const percent = Math.min(100, Math.floor((xp / 10000) * 100));
+  const percent = Math.floor((xp / 10000) * 100);
   return { xp, percent };
 };
 
-// MOCK LESSONS
-const generateLessons = (level: string) => [
-  {
-    id: `${level}-1`,
-    title: "Salutări și prezentări",
-    description: "Cum te saluți și te prezinți în germană.",
-    icon: <FaComments className="text-teal-600 text-2xl" />,
-    steps: [
-      {
-        type: "theory",
-        content: {
-          text: "În germană, 'Hallo' înseamnă 'Salut'. Folosiți 'Ich heiße ...' pentru a spune cum vă cheamă.",
-          image:
-            "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/German_Greetings.png/320px-German_Greetings.png",
-        },
-      },
-      {
-        type: "exercise",
-        content: {
-          question: "Cum spui „Mă numesc Ana” în germană?",
-          answer: "Ich heiße Ana",
-          type: "input",
-        },
-      },
-      {
-        type: "theory",
-        content: {
-          text: "a doua teorie",
-          image:
-            "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/German_Greetings.png/320px-German_Greetings.png",
-        },
-      },
-      {
-        type: "exercise",
-        content: {
-          question: "Selectează traducerea corectă pentru 'Salut'",
-          options: ["Hallo", "Tschüss", "Danke"],
-          correctOption: "Hallo",
-          type: "multiple-choice",
-        },
-      },
-      {
-        type: "exercise",
-        content: {
-          question: "Potrivește expresiile cu traducerea corectă:",
-          type: "matching",
-          pairs: [
-            { left: "Bună dimineața", right: "Guten Morgen" },
-            { left: "La revedere", right: "Auf Wiedersehen" },
-          ],
-        },
-      },
-    ],
-  },
-];
-
-// Matching Drag Items
-function Draggable({ id, children }: { id: string; children: React.ReactNode }) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
-    id,
-  });
+// Drag & Drop Helpers
+function Draggable({ id, children }: any) {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({ id });
   return (
-    <div
-      ref={setNodeRef}
-      style={{
-        transform: transform
-          ? `translate(${transform.x}px, ${transform.y}px)`
-          : undefined,
-      }}
-      {...listeners}
-      {...attributes}
-      className="bg-white shadow p-2 rounded border cursor-move"
-    >
+    <div ref={setNodeRef} style={{ transform: transform ? `translate(${transform.x}px,${transform.y}px)` : undefined }} {...listeners} {...attributes}
+         className="bg-white shadow p-2 rounded border cursor-move">
       {children}
     </div>
   );
 }
-
-function Droppable({
-  id,
-  children,
-}: {
-  id: string;
-  children: React.ReactNode;
-}) {
-  const { setNodeRef } = useDroppable({
-    id,
-  });
+function Droppable({ id, children }: any) {
+  const { setNodeRef } = useDroppable({ id });
   return (
-    <div
-      ref={setNodeRef}
-      className="min-h-[40px] border-2 border-dashed border-gray-300 rounded p-2 bg-gray-50"
-    >
+    <div ref={setNodeRef}
+         className="min-h-[40px] border-2 border-dashed border-gray-300 rounded p-2 bg-gray-50">
       {children}
     </div>
   );
@@ -155,320 +87,168 @@ function Droppable({
 
 export default function Lessons() {
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
-  const [selectedLesson, setSelectedLesson] = useState<any | null>(null);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState("");
-  const [isCorrect, setIsCorrect] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [matchingAnswers, setMatchingAnswers] = useState<Record<string, string>>({});
-  const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
+  const [isCorrect, setIsCorrect] = useState(false);
 
-  const lessons = selectedLevel ? generateLessons(selectedLevel) : [];
-  const currentStep = selectedLesson?.steps?.[currentStepIndex] || null;
+  // load lessons when level changes
+  useEffect(() => {
+  if (!selectedLevel) return;
+
+  fetch(`/api/getLessons?idPrefix=${selectedLevel}`)
+    .then(res => res.json())
+    .then((data: Lesson[]) => {
+      setLessons(data);
+    })
+    .catch(console.error);
+}, [selectedLevel]);
+
+
+  const currentStep = selectedLesson?.steps[currentStepIndex];
 
   const handleCheckAnswer = () => {
-    if (!currentStep) return;
-    const { type, content } = currentStep;
-
-    if (type === "exercise") {
-      if (content.type === "input") {
-        setIsCorrect(
-          userAnswer.trim().toLowerCase() === content.answer.toLowerCase()
-        );
-      } else if (content.type === "multiple-choice") {
-        setIsCorrect(selectedOption === content.correctOption);
-      } else if (content.type === "matching") {
-        const correct = content.pairs.every(
-          (pair: any) => matchingAnswers[pair.left] === pair.right
-        );
-        setIsCorrect(correct);
-      }
-    }
+    if (!currentStep || currentStep.type !== "exercise") return;
+    const c = currentStep.content as any;
+    if (c.type === "input") setIsCorrect(userAnswer.trim().toLowerCase() === c.answer.toLowerCase());
+    if (c.type === "multiple-choice") setIsCorrect(selectedOption === c.correctOption);
+    if (c.type === "matching") setIsCorrect(c.pairs.every(p => matchingAnswers[p.left] === p.right));
   };
 
   const handleNext = () => {
-    if (selectedLesson && currentStepIndex < selectedLesson.steps.length - 1) {
-      setCurrentStepIndex(currentStepIndex + 1);
-      setUserAnswer("");
-      setIsCorrect(false);
-      setSelectedOption(null);
-      setMatchingAnswers({});
-    }
+    setCurrentStepIndex(i => i + 1);
+    setUserAnswer("");
+    setSelectedOption(null);
+    setMatchingAnswers({});
+    setIsCorrect(false);
   };
 
-  const handleDragEnd = (event: any) => {
+  function handleDragEnd(event: any) {
     const { active, over } = event;
     if (over) {
-      setMatchingAnswers((prev) => ({
-        ...prev,
-        [over.id]: active.id,
-      }));
+      setMatchingAnswers(prev => ({ ...prev, [over.id]: active.id }));
     }
-  };
+  }
 
   return (
-    <section className="max-w-6xl mx-auto px-6 py-10">
-      {selectedLesson ? (
+    <div className="max-w-4xl mx-auto py-10">
+      {/* Choose level */}
+      {!selectedLevel && (
         <div>
-          <div className="flex justify-between mb-4">
-            <h2 className="text-xl font-bold">Lecția: {selectedLesson.title}</h2>
-            <button
-              onClick={() => setSelectedLesson(null)}
-              className="text-sm px-4 py-2 bg-gray-100 rounded hover:bg-gray-200"
-            >
-              ← Înapoi la lecții
-            </button>
-          </div>
-
-          {/* THEORY STEP */}
-          {currentStep?.type === "theory" && (
-            <div className="bg-white p-6 rounded-xl shadow mb-6">
-              <p className="text-lg mb-4 font-medium text-gray-800">
-                {currentStep.content.text}
-              </p>
-              {currentStep.content.image && (
-                <img
-                  src={currentStep.content.image}
-                  alt="teorie"
-                  className="rounded-lg shadow w-full max-w-md mx-auto"
-                />
-              )}
-              <button
-                onClick={handleNext}
-                className="mt-6 px-6 py-2 bg-teal-600 text-white rounded hover:bg-teal-700"
-              >
-                Următorul
-              </button>
-            </div>
-          )}
-
-          {/* INPUT EXERCISE */}
-          {currentStep?.type === "exercise" &&
-            currentStep.content.type === "input" && (
-              <div className="bg-white p-6 rounded-xl shadow mb-6">
-                <p className="mb-4 font-medium text-gray-800">
-                  {currentStep.content.question}
-                </p>
-                <input
-                  type="text"
-                  className="border p-3 rounded w-full text-gray-800"
-                  placeholder="Scrie răspunsul..."
-                  value={userAnswer}
-                  onChange={(e) => setUserAnswer(e.target.value)}
-                />
-                <button
-                  onClick={handleCheckAnswer}
-                  className="mt-4 px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  Verifică
-                </button>
-                {isCorrect && (
-                  <div className="mt-4 text-green-600 font-semibold">
-                    Corect! 👏
-                    <button
-                      onClick={handleNext}
-                      className="ml-4 px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700"
-                    >
-                      Continuă
-                    </button>
-                  </div>
-                )}
-                {!isCorrect && userAnswer && (
-                  <p className="mt-4 text-red-600">
-                    Răspuns greșit, încearcă din nou!
-                  </p>
-                )}
-              </div>
-            )}
-
-          {/* MULTIPLE CHOICE */}
-          {currentStep?.type === "exercise" &&
-            currentStep.content.type === "multiple-choice" && (
-              <div className="bg-white p-6 rounded-xl shadow mb-6">
-                <p className="mb-4 font-medium text-gray-800">
-                  {currentStep.content.question}
-                </p>
-                <div className="space-y-2">
-                  {currentStep.content.options.map((option: string) => (
-                    <button
-                      key={option}
-                      onClick={() => setSelectedOption(option)}
-                      className={`block w-full text-left p-3 border rounded-lg transition ${
-                        selectedOption === option
-                          ? "bg-blue-100 border-blue-500"
-                          : "hover:bg-gray-100"
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-                <button
-                  onClick={handleCheckAnswer}
-                  className="mt-4 px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  Verifică
-                </button>
-                {isCorrect && (
-                  <div className="mt-4 text-green-600 font-semibold">
-                    Corect! 👏
-                    <button
-                      onClick={handleNext}
-                      className="ml-4 px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700"
-                    >
-                      Continuă
-                    </button>
-                  </div>
-                )}
-                {!isCorrect && selectedOption && (
-                  <p className="mt-4 text-red-600">Răspuns greșit!</p>
-                )}
-              </div>
-            )}
-
-          {/* MATCHING EXERCISE */}
-          {currentStep?.type === "exercise" &&
-            currentStep.content.type === "matching" && (
-              <div className="bg-white p-6 rounded-xl shadow mb-6">
-                <p className="mb-4 font-medium text-gray-800">
-                  {currentStep.content.question}
-                </p>
-                <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      {currentStep.content.pairs.map((pair: any) => (
-                        <div key={pair.left} className="mb-4">
-                          <p className="mb-2 font-medium">{pair.left}</p>
-                          <Droppable id={pair.left}>
-                            {matchingAnswers[pair.left] || ""}
-                          </Droppable>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="space-y-2">
-                      {shuffleArray(currentStep.content.pairs.map((p: any) => p.right)).map(
-                        (right: string) => (
-                          <Draggable key={right} id={right}>
-                            {right}
-                          </Draggable>
-                        )
-                      )}
-                    </div>
-                  </div>
-                </DndContext>
-                <button
-                  onClick={handleCheckAnswer}
-                  className="mt-6 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  Verifică
-                </button>
-                {isCorrect && (
-                  <div className="mt-4 text-green-600 font-semibold">
-                    Corect! 👏
-                    <button
-                      onClick={handleNext}
-                      className="ml-4 px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700"
-                    >
-                      Continuă
-                    </button>
-                  </div>
-                )}
-                {!isCorrect && Object.keys(matchingAnswers).length > 0 && (
-                  <p className="mt-4 text-red-600">Mai încearcă o dată!</p>
-                )}
-              </div>
-            )}
-        </div>
-      ) : selectedLevel ? (
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {lessons.map(({ id, title, description, icon }) => {
-            const { xp, percent } = getProgress(id);
-            return (
-              <motion.div
-                key={id}
-                whileHover={{ scale: 1.02 }}
-                className="bg-white rounded-xl shadow p-5 cursor-pointer border"
-                onClick={() => {
-                  setSelectedLesson({
-                    id,
-                    title,
-                    steps: lessons.find((l) => l.id === id)?.steps,
-                  });
-                  setCurrentStepIndex(0);
-                  setUserAnswer("");
-                  setIsCorrect(false);
-                  setMatchingAnswers({});
-                }}
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  {icon}
-                  <h3 className="font-semibold">{title}</h3>
-                </div>
-                <p className="text-sm text-gray-600">{description}</p>
-                <div className="mt-4">
-                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-green-500"
-                      style={{ width: `${percent}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-right text-gray-500 mt-1">
-                    {xp} / 10.000 XP
-                  </p>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-      ) : (
-        <>
-          <h2 className="text-3xl font-bold text-center mb-8">Alege Nivelul</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {levels.map(({ level, title, description, icon, bg, image }) => {
-              const { xp, percent } = getProgress(level);
+          <h2 className="text-3xl mb-6 text-center">Alege Nivelul</h2>
+          <div className="grid grid-cols-3 gap-6">
+            {levels.map(lvl => {
+              const { xp, percent } = getProgress(lvl.level);
               return (
-                <motion.div
-                  key={level}
-                  whileHover={{ scale: 1.05 }}
-                  className={`rounded-2xl shadow overflow-hidden cursor-pointer hover:shadow-lg transition-shadow ${bg}`}
-                  onClick={() => setSelectedLevel(level)}
-                >
-                  <img
-                    src={image}
-                    alt={level}
-                    className="w-full h-36 object-cover"
-                  />
-                  <div className="p-6">
-                    <div className="flex justify-center mb-4">{icon}</div>
-                    <h3 className="text-xl font-semibold text-center">
-                      {level} – {title}
-                    </h3>
-                    <p className="text-sm text-gray-600 text-center">
-                      {description}
-                    </p>
-                    <div className="mt-4">
-                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-teal-500"
-                          style={{ width: `${percent}%` }}
-                        />
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1 text-right">
-                        {xp} / 10.000 XP
-                      </p>
-                    </div>
+                <motion.div key={lvl.level} className={`${lvl.bg} rounded-lg shadow p-4 cursor-pointer`}
+                            whileHover={{ scale: 1.02 }} onClick={() => setSelectedLevel(lvl.level)}>
+                  {lvl.image && <img src={lvl.image} alt={lvl.level} className="h-32 object-cover rounded" />}
+                  <div className="mt-3 text-center">{lvl.icon}</div>
+                  <h3 className="mt-2 text-xl font-semibold">{lvl.level} – {lvl.title}</h3>
+                  <div className="h-2 bg-gray-200 rounded mt-2 overflow-hidden">
+                    <div className="h-full bg-teal-500" style={{ width: `${percent}%` }} />
                   </div>
+                  <p className="text-xs mt-1 text-right">{xp}/10.000 XP</p>
                 </motion.div>
               );
             })}
           </div>
-        </>
+        </div>
       )}
-    </section>
+
+      {/* Choose lesson */}
+      {selectedLevel && !selectedLesson && (
+        <div>
+          <div className="flex justify-between mb-4">
+            <h2 className="text-2xl">Lecții – {selectedLevel}</h2>
+            <button onClick={() => setSelectedLevel(null)} className="px-3 py-1 bg-gray-200 rounded">← Înainte</button>
+          </div>
+          <div className="grid grid-cols-3 gap-6">
+            {lessons.map(les => {
+              const { xp, percent } = getProgress(les.id);
+              return (
+                <motion.div key={les.id} className="shadow rounded bg-white p-4 cursor-pointer"
+                            whileHover={{ scale: 1.02 }} onClick={() => { setSelectedLesson(les); setCurrentStepIndex(0); }}>
+                  <div className="flex items-center gap-2"><FaBook />{les.title}</div>
+                  <div className="h-1 bg-gray-200 rounded mt-2 overflow-hidden">
+                    <div className="h-full bg-green-500" style={{ width: `${percent}%` }} />
+                  </div>
+                  <p className="text-xs mt-1 text-right">{xp}/10.000 XP</p>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Lesson Steps */}
+      {selectedLesson && (
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl">{selectedLesson.title}</h2>
+            <button onClick={() => setSelectedLesson(null)} className="px-3 py-1 bg-gray-200 rounded">← Înainte</button>
+          </div>
+          {currentStep?.type === "theory" && (
+            <div className="bg-white p-6 rounded shadow mb-6">
+              <p>{currentStep.content.text}</p>
+              {currentStep.content.image && <img src={currentStep.content.image} alt="" className="mt-4 rounded" />}
+              <button onClick={handleNext} className="mt-4 px-5 py-2 bg-teal-600 text-white rounded">Continuă</button>
+            </div>
+          )}
+          {currentStep?.type === "exercise" && (
+            <div className="bg-white p-6 rounded shadow mb-6">
+              <p className="mb-4 font-medium">{(currentStep.content as any).question}</p>
+
+              {/* Input */}
+              {(currentStep.content as any).type === "input" && (
+                <input value={userAnswer} onChange={e => setUserAnswer(e.target.value)}
+                       className="w-full border p-2 rounded mb-4" placeholder="Scrie răspunsul..." />
+              )}
+              {/* Multiple-choice */}
+              {(currentStep.content as any).type === "multiple-choice" && (
+                <div className="space-y-2">
+                  {(currentStep.content as any).options.map((opt: string) => (
+                    <button key={opt} onClick={() => setSelectedOption(opt)}
+                            className={`block w-full text-left p-3 rounded border transition ${
+                              selectedOption === opt ? "bg-blue-100 border-blue-500" : "hover:bg-gray-100"
+                            }`}>
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {/* Matching */}
+              {(currentStep.content as any).type === "matching" && (
+                <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    {(currentStep.content as any).pairs.map((p: any) => (
+                      <div key={p.left}>
+                        <p className="text-sm mb-2">{p.left}</p>
+                        <Droppable id={p.left}>{matchingAnswers[p.left] || ""}</Droppable>
+                      </div>
+                    ))}
+                    {shuffleArray((currentStep.content as any).pairs.map((p: any) => p.right)).map((ri: string) => (
+                      <Draggable key={ri} id={ri}>{ri}</Draggable>
+                    ))}
+                  </div>
+                </DndContext>
+              )}
+
+              <button onClick={handleCheckAnswer} className="px-5 py-2 bg-blue-600 text-white rounded">Verifică</button>
+              {isCorrect && <div className="mt-4 text-green-600">Corect! <button onClick={handleNext} className="px-3 py-1 bg-teal-600 text-white rounded ml-2">Continuă</button></div>}
+              {!isCorrect && ((userAnswer || selectedOption || Object.keys(matchingAnswers).length) && <p className="text-red-600 mt-2">Mai încearcă!</p>)}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
-// Helper to shuffle array (e.g. for right-side drag options)
-function shuffleArray<T>(array: T[]): T[] {
-  return [...array].sort(() => Math.random() - 0.5);
+// Utility shuffle function
+function shuffleArray<T>(arr: T[]): T[] {
+  return [...arr].sort(() => Math.random() - 0.5);
 }
