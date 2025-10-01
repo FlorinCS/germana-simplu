@@ -9,6 +9,20 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
+export const userLessons = pgTable("user_lessons", {
+  id: serial("id").primaryKey(),
+  lessonId: varchar("lesson_id", { length: 15 }).notNull(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  position: integer("position").notNull().default(0), // O(n) updates allowed
+  points: integer("points").notNull().default(0),     // O(n) updates allowed
+  lastUpdated: timestamp("last_updated")
+    .notNull()
+    .defaultNow()
+});
+
+
 export const mockExamResults = pgTable("mock_exam_results", {
   id: serial("id").primaryKey(),
   userId: integer("user_id")
