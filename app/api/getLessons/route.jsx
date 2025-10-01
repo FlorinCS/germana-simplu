@@ -23,6 +23,7 @@ export async function GET(request) {
 
     const filter = idPrefix ? { id: { $regex: `^${idPrefix}-` } } : {};
     const items = await collection.find(filter).toArray();
+    // Maybe here some for loop and and the index
 
     return NextResponse.json(items, {
       headers: {

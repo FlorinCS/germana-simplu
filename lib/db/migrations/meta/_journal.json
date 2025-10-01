@@ -29,6 +29,20 @@
       "when": 1749809100624,
       "tag": "0003_spooky_luminals",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1756149690482,
+      "tag": "0004_early_kronos",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1756150045108,
+      "tag": "0005_puzzling_junta",
+      "breakpoints": true
     }
   ]
 }
