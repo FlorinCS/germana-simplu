@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import parse from 'html-react-parser';
-
+import TelcExamApp from "@/components/ui/telc_exams_components";
 import {
   DndContext,
   closestCenter,
@@ -102,6 +102,8 @@ export default function Lessons() {
   const [xp, setXp] = useState(0);
   const [displayedXp, setDisplayedXp] = useState(0);
   const [hasChecked, setHasChecked] = useState(false);
+  const [savedProgressIndex, setSavedProgressIndex] = useState(0);
+
 
   // load lessons when level changes
   useEffect(() => {
@@ -114,20 +116,6 @@ export default function Lessons() {
     })
     .catch(console.error);
 }, [selectedLevel]);
-
-  useEffect(() => {
-    if (displayedXp === xp) return;
-
-    const increment = () => {
-      setDisplayedXp(prev => {
-        if (prev < xp) return Math.min(prev + 10, xp); // animare în pași de 10
-        return prev;
-      });
-    };
-
-    const interval = setInterval(increment, 30); // viteză animație
-    return () => clearInterval(interval);
-}, [xp, displayedXp]);
 
   const currentStep = selectedLesson?.steps[currentStepIndex];
 const handleCheckAnswer = () => {
@@ -173,16 +161,63 @@ const handleCheckAnswer = () => {
     audio.play();
   };
 
-  const handleNext = () => {
-    console.log(currentStepIndex);   
-    setCurrentStepIndex(i => i + 1);
+  const handleNext = async () => {
+    console.log(selectedLesson?.steps.length)
+  try {
+    // Call your API to update progress in DB
+    const res = await fetch("/api/saveLessonProgress", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lessonId: selectedLesson?.id }), // use your current lessonId
+    });
+
+    const data = await res.json();
+
+    // Get new position from DB (fallback to local increment if needed)
+    const newPosition = data.lesson?.position ?? currentStepIndex + 1;
+
+    // Update local state
+    setCurrentStepIndex(newPosition);
+    setSavedProgressIndex(newPosition);
     setUserAnswer("");
     setSelectedOption(null);
     setMatchingAnswers({});
     setIsCorrect(false);
     setHasChecked(false);
 
+    console.log("Updated step index:", newPosition);
+    // setCurrentStepIndex((prev) => prev + 1);
+    setDisplayedXp(data.lesson?.points); // instant increment for better UX
+  } catch (err) {
+    console.error("Error updating lesson progress:", err);
+
+    // fallback to local increment if API fails
+    setCurrentStepIndex((prev) => prev + 1);
+  }
+};
+  const handlePrevious = () => {
+    if (currentStepIndex > 0) {
+      setCurrentStepIndex((prev) => prev - 1);
+      setUserAnswer("");
+      setSelectedOption(null);
+      setMatchingAnswers({});
+      setIsCorrect(false);
+      setHasChecked(false);
+    }
   };
+
+  const handleNextCheck = () => {
+    if (currentStepIndex >= 0) {
+      setCurrentStepIndex((prev) => prev + 1);   
+      setUserAnswer("");
+      setSelectedOption(null);
+      setMatchingAnswers({});
+      setIsCorrect(false);
+      setHasChecked(false);
+    }
+  };
+
+
 
   function handleDragEnd(event: any) {
     const { active, over } = event;
@@ -200,6 +235,7 @@ const handleCheckAnswer = () => {
           <div className="grid grid-cols-3 gap-6">
             {levels.map(lvl => {
               const { xp, percent } = getProgress(lvl.level);
+              
               return (
                 <motion.div key={lvl.level} className={`${lvl.bg} rounded-lg shadow p-4 cursor-pointer`}
                             whileHover={{ scale: 1.02 }} onClick={() => setSelectedLevel(lvl.level)}>
@@ -225,19 +261,70 @@ const handleCheckAnswer = () => {
             <button onClick={() => setSelectedLevel(null)} className="px-3 py-1 bg-gray-200 rounded">← Înainte</button>
           </div>
           <div className="grid grid-cols-3 gap-6">
+            
             {lessons.map(les => {
+              const handleSelectLesson = async () => {
+              try {
+                  // fetch the user's lesson row
+                  console.log(les.id)
+                  const res = await fetch(`/api/getUserLesson?lessonId=${les.id}`);
+                  if (!res.ok) throw new Error("Failed to fetch user lesson");
+                  const data = await res.json();
+
+                  // lesson from DB, default to position = 0 if not found
+                  const position = data.lesson?.position ?? 0;
+
+                  setSelectedLesson(les);
+                  setDisplayedXp(data.lesson?.points || 0);
+
+                  setCurrentStepIndex(position);
+                  setSavedProgressIndex(position);
+                  console.log(position)
+                } catch (err) {
+                  console.error("Error fetching lesson:", err);
+                }
+              };
               const { xp, percent } = getProgress(les.id);
+              
               return (
+                <div>
                 <motion.div key={les.id} className="shadow rounded bg-white p-4 cursor-pointer"
-                            whileHover={{ scale: 1.02 }} onClick={() => { setSelectedLesson(les); setCurrentStepIndex(2); }}>
+                            whileHover={{ scale: 1.02 }} onClick={handleSelectLesson}>
                   <div className="flex items-center gap-2"><FaBook />{les.title}</div>
                   <div className="h-1 bg-gray-200 rounded mt-2 overflow-hidden">
                     <div className="h-full bg-green-500" style={{ width: `${percent}%` }} />
                   </div>
                   <p className="text-xs mt-1 text-right">{xp}/10.000 XP</p>
+                  {/* Reset button */}
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (!confirm("Ești sigur că vrei să resetezi progresul?")) return;
+
+                      const res = await fetch("/api/resetLessonProgress", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ lessonId: les.id }),
+                      });
+
+                      if (res.ok) {
+                        // update UI local după reset
+                        setLessons((prev) =>
+                          prev.map((l) =>
+                            l.id === les.id ? { ...l, position: 0, points: 0 } : l
+                          )
+                        );
+                      }
+                    }}
+                    className="text-sm px-2 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200"
+                  >
+                    Reset
+                  </button>
                 </motion.div>
+                </div>
               );
             })}
+            
           </div>
         </div>
       )}
@@ -255,7 +342,7 @@ const handleCheckAnswer = () => {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-500" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 17.27L18.18 21l-1.63-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.45 4.73L5.82 21z"/>
               </svg>
-              <span>{displayedXp}/10 000 Puncte</span>
+              <span>{displayedXp}/{selectedLesson?.steps.length * 100} Puncte</span>
             </div>
           </div>
           
@@ -294,15 +381,38 @@ const handleCheckAnswer = () => {
         className="mt-4 rounded"
       />
     )}
+    
+  <div className="mt-4 flex gap-2">
+    {currentStepIndex > 0 && (
+      <button
+        onClick={handlePrevious}
+        className="px-3 py-1 bg-gray-400 text-white rounded pointer-events-auto"
+      >
+        Înapoi
+      </button>
+    )}
+    {currentStepIndex >= 0 && currentStepIndex < savedProgressIndex && (
+        <button
+          onClick={handleNextCheck}
+          className="px-3 py-1 bg-gray-400 text-white rounded"
+        >
+          Înainte
+        </button>
+      )}{savedProgressIndex}
+    {currentStepIndex == savedProgressIndex && (
     <button
       onClick={handleNext}
-      className="mt-4 px-5 py-2 bg-teal-600 text-white rounded"
+      className="px-3 py-1 bg-teal-600 text-white rounded"
     >
       Continuă
     </button>
+    )}
+  </div>
+
+
   </div>
 )}
-{selectedLesson && currentStepIndex >= selectedLesson.steps.length && (
+{selectedLesson && currentStepIndex == selectedLesson.steps.length && (
   <motion.div
     className="bg-white p-8 rounded-lg shadow text-center"
     initial={{ opacity: 0, scale: 0.9 }}
@@ -352,7 +462,7 @@ const handleCheckAnswer = () => {
           {currentStep?.type === "exercise" && (
             <div className="bg-white p-6 rounded shadow mb-6">
               <p className="mb-4 font-medium">{(currentStep.content as any).question}</p>
-
+              {currentStep.content.type}
               {/* Input */}
               {(currentStep.content as any).type === "input" && (
                 <input
@@ -413,30 +523,47 @@ const handleCheckAnswer = () => {
                 </DndContext>
               )}
               {/* Check Answer Button */}
-              <button onClick={handleCheckAnswer} className="px-5 py-2 bg-blue-600 text-white rounded">Verifică</button>
-              {hasChecked && (
+                {currentStepIndex > 0 && (
+                  <button
+                    onClick={handlePrevious}
+                    className="px-3 py-1 bg-gray-400 text-white rounded"
+                  >
+                    Înapoi
+                  </button>
+                )}{savedProgressIndex}
+                {currentStepIndex >= 0 && currentStepIndex < savedProgressIndex && (
+                  <button
+                    onClick={handleNextCheck}
+                    className="px-3 py-1 bg-gray-400 text-white rounded"
+                  >
+                    Înainte
+                  </button>
+                )}
+                {currentStepIndex == savedProgressIndex && (                   
+                <button onClick={handleCheckAnswer} className={`px-5 py-2 bg-blue-600 text-white rounded ${isCorrect ? "cursor-not-allowed bg-gray-600 hidden" : ""}`}>Verifică</button>
+                )}
+                {hasChecked && (
                 <p className={`mt-4 font-semibold ${isCorrect ? "text-green-600" : "text-red-600"}`}>
                   {isCorrect ? "✔️ Răspuns corect!" : "❌ Mai încearcă!"}
                 </p>
               )}
 
               {hasChecked && isCorrect && (
-              <div className="mt-4 text-green-600">
-                Corect!
-                <button
-                  onClick={handleNext}
-                  className="px-3 py-1 bg-teal-600 text-white rounded ml-2"
-                >
-                  Continuă
-                </button>
+              <div className="mt-4 text-green-600">{savedProgressIndex}
+                {currentStepIndex == savedProgressIndex && (
+                  <button
+                    onClick={handleNext}
+                    className="px-3 py-1 bg-teal-600 text-white rounded"
+                  >
+                    Continuă
+                  </button>
+                )}
               </div>
             )}
 
             {hasChecked && !isCorrect && (
               <p className="text-red-600 mt-2">Mai încearcă!</p>
             )}
-
-
             </div>
           )}
         </div>
