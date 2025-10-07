@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-
+import logo from "@/assets/logos/B1.png";
 /*
   telc-exams-components.jsx
   Single-file collection of React components (Next.js + Tailwind-ready) that implement:
@@ -24,27 +24,214 @@ import React, { useEffect, useState, useRef } from 'react';
 */
 
 /* ----------------------------- FAKE DATA --------------------------------- */
-const FAKE_EXAMS = [
-  {
-    id: 'telc-b1-1',
-    title: 'telc deutsch b1 - practice set 1',
-    level: 'B1',
-    cover: '/images/telc-b1-cover.jpg',
-    description:
-      'Full B1 exam simulation: Leseverstehen, Sprachbausteine, Hörverstehen, Schriftlicher Ausdruck. Timed sections and stage-by-stage navigation.',
-    stages: [
-      { id: 'lv1', title: 'Leseverstehen — Teil 1', type: 'zuordnung-smalltexts', durationMin: 10 },
-      { id: 'lv2', title: 'Leseverstehen — Teil 2', type: 'multiple-choice-continue', durationMin: 12 },
-      { id: 'lv3', title: 'Leseverstehen — Teil 3', type: 'zuordnung-posters', durationMin: 8 },
-      { id: 'sb1', title: 'Sprachbausteine — Teil 1', type: 'grammar-mc', durationMin: 10 },
-      { id: 'sb2', title: 'Sprachbausteine — Teil 2', type: 'lexik-mc', durationMin: 12 },
-      { id: 'hv1', title: 'Hörverstehen — Teil 1', type: 'listening-30s-oneread', durationMin: 8 },
-      { id: 'hv2', title: 'Hörverstehen — Teil 2', type: 'listening-1min-twice', durationMin: 10 },
-      { id: 'hv3', title: 'Hörverstehen — Teil 3', type: 'listening-30s-twice', durationMin: 6 },
-      { id: 'schrift', title: 'Schriftlicher Ausdruck', type: 'writing-email', durationMin: 30 },
-    ],
+export const TELC_B1_EXAM = [{
+  id: 'telc-b1-1',
+  title: 'telc deutsch b1 - practice set 1',
+  level: 'B1',
+  cover: logo.src,
+  description:
+    'Full B1 exam simulation: Leseverstehen, Sprachbausteine, Hörverstehen, Schriftlicher Ausdruck. Timed sections and stage-by-stage navigation.',
+  stages: [
+    { id: 'lv1', title: 'Leseverstehen — Teil 1', type: 'zuordnung-smalltexts', durationMin: 10 },
+    { id: 'lv2', title: 'Leseverstehen — Teil 2', type: 'multiple-choice-continue', durationMin: 12 },
+    { id: 'lv3', title: 'Leseverstehen — Teil 3', type: 'zuordnung-posters', durationMin: 8 },
+    { id: 'sb1', title: 'Sprachbausteine — Teil 1', type: 'grammar-mc', durationMin: 10 },
+    { id: 'sb2', title: 'Sprachbausteine — Teil 2', type: 'lexik-mc', durationMin: 12 },
+    { id: 'hv1', title: 'Hörverstehen — Teil 1', type: 'listening-30s-oneread', durationMin: 8 },
+    { id: 'hv2', title: 'Hörverstehen — Teil 2', type: 'listening-1min-twice', durationMin: 10 },
+    { id: 'hv3', title: 'Hörverstehen — Teil 3', type: 'listening-30s-twice', durationMin: 6 },
+    { id: 'schrift', title: 'Schriftlicher Ausdruck', type: 'writing-email', durationMin: 30 },
+  ],
+  payloads: {
+    'zuordnung-smalltexts': {
+      texts: [
+        { id: 'A', text: 'Kleiner Text A — Angebot' },
+        { id: 'B', text: 'Kleiner Text B — Info' },
+        { id: 'C', text: 'Kleiner Text C — Einladung' },
+        { id: 'D', text: 'Kleiner Text D — Notiz' },
+        { id: 'E', text: 'Kleiner Text E — Ankündigung' },
+      ],
+      sentences: Array.from({ length: 10 }).map((_, i) => ({ id: `s${i + 1}`, text: `Satz ${i + 1}` })),
+    },
+
+    'multiple-choice-continue': {
+      passage:
+        'Lisa lebt seit drei Jahren in Berlin. Sie arbeitet als Lehrerin an einer Grundschule und fährt jeden Morgen mit dem Fahrrad zur Arbeit. Nachmittags trifft sie oft ihre Freunde im Park oder geht ins Kino. Am Wochenende reist sie gern in andere Städte oder besucht ihre Familie auf dem Land.',
+      items: [
+        {
+          id: 'mc1',
+          prompt: 'Lisa arbeitet als...',
+          options: [
+            'Krankenschwester in einem Krankenhaus',
+            'Lehrerin an einer Grundschule',
+            'Verkäuferin in einem Supermarkt',
+          ],
+          correct: 1,
+        },
+        {
+          id: 'mc2',
+          prompt: 'Wie fährt Lisa normalerweise zur Arbeit?',
+          options: ['Mit dem Auto', 'Mit dem Bus', 'Mit dem Fahrrad'],
+          correct: 2,
+        },
+        {
+          id: 'mc3',
+          prompt: 'Was macht Lisa oft am Nachmittag?',
+          options: [
+            'Sie schläft zu Hause.',
+            'Sie trifft Freunde im Park.',
+            'Sie arbeitet bis spät am Abend.',
+          ],
+          correct: 1,
+        },
+        {
+          id: 'mc4',
+          prompt: 'Was macht Lisa am Wochenende gern?',
+          options: [
+            'Sie reist in andere Städte.',
+            'Sie arbeitet an neuen Projekten.',
+            'Sie macht immer Hausaufgaben.',
+          ],
+          correct: 0,
+        },
+        {
+          id: 'mc5',
+          prompt: 'Wo lebt Lisas Familie?',
+          options: ['In der Stadt Berlin', 'Auf dem Land', 'In einem anderen Land'],
+          correct: 1,
+        },
+      ],
+    },
+
+    'zuordnung-posters': {
+      texts: [
+        { id: 'P1', text: 'Poster 1 — Musikfestival am Wochenende' },
+        { id: 'P2', text: 'Poster 2 — Neues Café eröffnet in der Stadt' },
+        { id: 'P3', text: 'Poster 3 — Flohmarkt am Sonntag' },
+      ],
+      sentences: Array.from({ length: 6 }).map((_, i) => ({ id: `ps${i + 1}`, text: `Satz ${i + 1}` })),
+    },
+
+    'grammar-mc': {
+      blanks: [
+        { id: 'b1', before: 'Ich ', after: ' ins Kino.', options: ['gehe', 'geht', 'gehst'], correct: 'gehe' },
+        { id: 'b2', before: 'Wir ', after: ' Fußball.', options: ['spiele', 'spielen', 'spielt'], correct: 'spielen' },
+        { id: 'b3', before: 'Er ', after: ' sehr müde.', options: ['bin', 'ist', 'sind'], correct: 'ist' },
+      ],
+    },
+
+    'lexik-mc': {
+      blanks: [
+        { id: 'l1', before: 'Ich gehe gern ', after: ', weil ich neue Orte sehen möchte.', options: ['Reisen', 'Arbeiten', 'Einkaufen', 'Lernen', 'Spielen'], correct: 'Reisen' },
+        { id: 'l2', before: 'Meine Mutter ist ', after: ' und arbeitet im Krankenhaus.', options: ['Lehrerin', 'Ärztin', 'Ingenieurin', 'Köchin', 'Verkäuferin'], correct: 'Ärztin' },
+        { id: 'l3', before: 'Ich fahre jeden Tag mit dem ', after: ' zur Arbeit.', options: ['Zug', 'Auto', 'Fahrrad', 'Bus', 'Flugzeug'], correct: 'Bus' },
+        { id: 'l4', before: 'Am ', after: ' trinke ich gern Kaffee.', options: ['Morgen', 'Abend', 'Mittag', 'Nacht', 'Frühstück'], correct: 'Morgen' },
+        { id: 'l5', before: 'Ich wohne in einer kleinen ', after: ' mit Balkon.', options: ['Haus', 'Wohnung', 'Garten', 'Zimmer', 'Balkon'], correct: 'Wohnung' },
+        { id: 'l6', before: 'Am Wochenende sehe ich einen guten ', after: '.', options: ['Buch', 'Film', 'Musik', 'Kunst', 'Sport'], correct: 'Film' },
+        { id: 'l7', before: 'Zum Frühstück esse ich oft ', after: ' und trinke Kaffee.', options: ['Apfel', 'Brot', 'Käse', 'Milch', 'Wasser'], correct: 'Brot' },
+        { id: 'l8', before: 'Im Urlaub fahre ich gern aufs ', after: ', um Ruhe zu haben.', options: ['Stadt', 'Land', 'Berg', 'Meer', 'Wald'], correct: 'Land' },
+        { id: 'l9', before: 'Mein Lieblingshaustier ist der ', after: ', er ist sehr freundlich.', options: ['Hund', 'Katze', 'Vogel', 'Fisch', 'Pferd'], correct: 'Hund' },
+        { id: 'l10', before: 'Im ', after: ' gehe ich oft schwimmen.', options: ['Winter', 'Sommer', 'Herbst', 'Frühling', 'Regen'], correct: 'Sommer' },
+      ],
+    },
+
+    'listening-30s-oneread': {
+      audioUrl: '/audio/sample1.mp3',
+      instructions: 'Höre den Text einmal. Danach siehst du 10 Aussagen. Entscheide, ob sie richtig oder falsch sind.',
+      prompts: [
+        { id: 'hp1', text: 'Lisa steht jeden Morgen um sechs Uhr auf.' },
+        { id: 'hp2', text: 'Sie fährt mit dem Auto zur Arbeit.' },
+        { id: 'hp3', text: 'In ihrer Freizeit liest sie gern Bücher.' },
+        { id: 'hp4', text: 'Am Wochenende besucht sie oft ihre Freunde.' },
+        { id: 'hp5', text: 'Sie arbeitet in einem Krankenhaus.' },
+        { id: 'hp6', text: 'Ihr Lieblingsessen ist Pizza.' },
+        { id: 'hp7', text: 'Lisa wohnt in einer kleinen Wohnung in Berlin.' },
+        { id: 'hp8', text: 'Sie hört jeden Tag Musik beim Kochen.' },
+        { id: 'hp9', text: 'Im Sommer fährt sie gern ans Meer.' },
+        { id: 'hp10', text: 'Sie hat einen Hund, der Max heißt.' },
+      ],
+      correctAnswers: [true, false, true, true, false, true, true, true, true, false],
+      transcript: `Hallo! Mein Name ist Lisa und ich möchte euch ein bisschen über meinen Alltag erzählen. 
+Ich stehe jeden Morgen um sechs Uhr auf und frühstücke mit einer Tasse Kaffee und einem Stück Brot. 
+Danach fahre ich mit dem Fahrrad zur Arbeit, weil ich in der Nähe wohne. 
+Ich arbeite in einem Büro, nicht im Krankenhaus. 
+In meiner Freizeit lese ich gern Bücher oder treffe Freunde. 
+Am Wochenende besuche ich oft meine Freunde oder gehe spazieren. 
+Mein Lieblingsessen ist Pizza, aber ich koche auch gern selbst. 
+Ich wohne in einer kleinen Wohnung in Berlin und höre jeden Tag Musik beim Kochen. 
+Im Sommer fahre ich gern ans Meer, weil ich das Wasser liebe. 
+Tiere mag ich sehr, aber ich habe leider keinen Hund.`,
+    },
+
+    'listening-1min-twice': {
+      audioUrl: '/audio/sample2.mp3',
+      instructions: 'Du hörst eine Durchsage zweimal. Lies die Aussagen und entscheide, ob sie richtig oder falsch sind.',
+      prompts: [
+        { id: 'hp2_1', text: 'Der Zug nach München fährt heute von Gleis 5 ab.' },
+        { id: 'hp2_2', text: 'Die Abfahrt ist um 18:30 Uhr.' },
+        { id: 'hp2_3', text: 'Der Zug hält unterwegs auch in Augsburg.' },
+        { id: 'hp2_4', text: 'Wegen technischer Probleme kommt es zu Verspätungen.' },
+        { id: 'hp2_5', text: 'Fahrgäste mit Reservierung sollen zum Informationsschalter kommen.' },
+        { id: 'hp2_6', text: 'Im Zug gibt es ein Bordrestaurant.' },
+        { id: 'hp2_7', text: 'Kinder unter sechs Jahren reisen kostenlos mit.' },
+        { id: 'hp2_8', text: 'Die nächste Verbindung nach München ist in zwei Stunden.' },
+        { id: 'hp2_9', text: 'Alle Fahrgäste müssen Masken tragen.' },
+        { id: 'hp2_10', text: 'Die Fahrgäste sollen ihre Tickets beim Einstieg bereithalten.' },
+      ],
+      correctAnswers: [true, false, true, true, false, true, true, false, false, true],
+      transcript: `Achtung, eine Durchsage. 
+Der Zug nach München fährt heute von Gleis 5 ab. 
+Die Abfahrt ist um 18 Uhr. 
+Der Zug hält unterwegs auch in Augsburg. 
+Wegen technischer Probleme kommt es zu einer Verspätung von etwa zehn Minuten. 
+Fahrgäste mit Reservierung müssen nichts unternehmen. 
+Im Zug befindet sich ein Bordrestaurant. 
+Kinder unter sechs Jahren reisen kostenlos mit. 
+Die nächste Verbindung nach München fährt um 20 Uhr. 
+Bitte halten Sie Ihre Tickets beim Einstieg bereit. Vielen Dank.`,
+    },
+
+    'listening-30s-twice': {
+      audioUrl: 'https://cdn.jsdelivr.net/gh/florincs/german-audio/telc-b1-1-03.mp3',
+      instructions: 'Du hörst den Text zweimal. Danach siehst du fünf Aussagen. Entscheide, ob sie richtig oder falsch sind.',
+      prompts: [
+        { id: 'hp3_1', text: 'Tom arbeitet in einem Café.' },
+        { id: 'hp3_2', text: 'Er steht jeden Tag um fünf Uhr auf.' },
+        { id: 'hp3_3', text: 'Am Nachmittag spielt er gern Gitarre.' },
+        { id: 'hp3_4', text: 'Er trinkt keinen Kaffee.' },
+        { id: 'hp3_5', text: 'Am Sonntag besucht er seine Familie.' },
+      ],
+      correctAnswers: [false, true, true, false, true],
+      transcript: `Hallo, ich bin Tom. Ich arbeite nicht in einem Café, sondern in einer kleinen Bäckerei im Zentrum. 
+Mein Tag beginnt sehr früh – meistens schon um fünf Uhr morgens. 
+Ich backe Brot, Brötchen und manchmal Kuchen. 
+Am Nachmittag habe ich frei. Dann höre ich Musik oder spiele Gitarre mit meinen Freunden. 
+Ich liebe Kaffee und trinke oft eine Tasse in meiner Pause. 
+Am Sonntag habe ich immer frei und besuche meine Familie. Das ist für mich sehr wichtig.`,
+    },
+
+    'writing-email': {
+      prompt: `Betreff: Einladung zum Sommerfest 🌞  
+Von: Anna.Meyer@example.com  
+An: [Ihre E-Mail-Adresse]
+
+Liebe/r [Name],
+
+nächste Woche am Samstag feiern wir in unserem Deutschkurs ein kleines Sommerfest im Park. 
+Jede Person soll etwas zu essen oder zu trinken mitbringen. 
+Bitte schreiben Sie mir eine kurze E-Mail und sagen Sie mir:
+
+- ob Sie kommen können,  
+- was Sie mitbringen,  
+- und ob Sie beim Aufbau helfen können.
+
+Ich freue mich auf Ihre Antwort!
+
+Viele Grüße  
+Anna Meyer`,
+    },
   },
-  // add more exams as needed
+}
 ];
 
 /* ----------------------------- HELPERS ---------------------------------- */
@@ -202,50 +389,103 @@ function GrammarMC({ stageId, text, blanks, onAnswer, answers }) {
   );
 }
 
-function ListeningStage({ stageId, prompts, audioUrl, readTimeSec = 30, repeats = 1, onAnswer, answers }) {
+function ListeningStage({
+  stageId,
+  prompts,
+  audioUrl,
+  readTimeSec = 30,
+  repeats = 1,
+  onAnswer,
+  answers,
+}) {
   const audioRef = useRef(null);
   const [readCountdown, setReadCountdown] = useState(readTimeSec);
-  const [phase, setPhase] = useState('read'); // 'read' | 'playing' | 'done'
+  const [phase, setPhase] = useState("read"); // 'read' | 'playing' | 'done'
+  const [currentRepeat, setCurrentRepeat] = useState(0);
+  const [canPlay, setCanPlay] = useState(false);
 
+  // Countdown for reading phase
   useEffect(() => {
-    if (phase === 'read') {
+    if (phase === "read") {
       setReadCountdown(readTimeSec);
-      const id = setInterval(() => setReadCountdown((s) => {
-        if (s <= 1) {
-          clearInterval(id);
-          setPhase('playing');
-        }
-        return s - 1;
-      }), 1000);
+      const id = setInterval(() => {
+        setReadCountdown((s) => {
+          if (s <= 1) {
+            clearInterval(id);
+            setPhase("playing");
+          }
+          return s - 1;
+        });
+      }, 1000);
       return () => clearInterval(id);
     }
-  }, [phase]);
+  }, [phase, readTimeSec]);
 
+  // Ensure audio is loaded and playable
   useEffect(() => {
-    if (phase === 'playing' && audioRef.current) {
-      // try to play the audio; if external files have CORS issues you may need server-hosted files
-      audioRef.current.play();
+    if (audioRef.current) {
+      audioRef.current.oncanplaythrough = () => setCanPlay(true);
+    }
+  }, [audioUrl]);
+
+  // Play audio automatically (no button)
+  useEffect(() => {
+    if (phase === "playing" && audioRef.current && canPlay) {
+      const playAudio = () => {
+        audioRef.current.currentTime = 0;
+        audioRef.current
+          .play()
+          .catch(() =>
+            console.warn("Autoplay blocked — user interaction may be required")
+          );
+      };
+
+      playAudio();
+
       audioRef.current.onended = () => {
-        if (repeats > 1) {
-          // if repeats > 1 we might re-trigger play (handled by repeating file) - simplified here
+        if (currentRepeat + 1 < repeats) {
+          // Wait 2 seconds between repeats
+          setTimeout(() => {
+            setCurrentRepeat((r) => r + 1);
+            playAudio();
+          }, 2000);
+        } else {
+          setPhase("done");
         }
-        setPhase('done');
       };
     }
-  }, [phase]);
+  }, [phase, currentRepeat, repeats, canPlay]);
 
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Hörverstehen</h3>
-      <p className="text-sm">Du hast <strong>{readTimeSec}s</strong> zum Lesen. Danach wird der Text abgespielt.</p>
+      <p className="text-sm">
+        Du hast <strong>{readTimeSec}s</strong> zum Lesen. Danach wird das Audio
+        automatisch abgespielt.
+      </p>
+
       <div className="bg-white/5 p-4 rounded">
-        <div className="mb-3">Lesezeit: {phase === 'read' ? `${readCountdown}s` : 'Abspielen...'}</div>
+        <div className="mb-3">
+          {phase === "read"
+            ? `Lesezeit: ${readCountdown}s`
+            : phase === "playing"
+            ? `Wiedergabe (${currentRepeat + 1}/${repeats})...`
+            : "Abgeschlossen"}
+        </div>
+
         <audio ref={audioRef} src={audioUrl} preload="auto" />
+
         <ul className="space-y-2">
           {prompts.map((p) => (
-            <li key={p.id} className="flex items-center justify-between p-2 border rounded">
+            <li
+              key={p.id}
+              className="flex items-center justify-between p-2 border rounded"
+            >
               <div>{p.text}</div>
-              <select value={answers[p.id] ?? ''} onChange={(e) => onAnswer(p.id, e.target.value)}>
+              <select
+                value={answers[p.id] ?? ""}
+                onChange={(e) => onAnswer(p.id, e.target.value)}
+              >
                 <option value="">—</option>
                 <option value="true">Richtig</option>
                 <option value="false">Falsch</option>
@@ -257,6 +497,7 @@ function ListeningStage({ stageId, prompts, audioUrl, readTimeSec = 30, repeats 
     </div>
   );
 }
+
 
 function WritingEmail({ prompt, onSave, draft }) {
   const [text, setText] = useState(draft || '');
@@ -284,43 +525,19 @@ function StageRenderer({ stage, state, setState, onNext }) {
     setState((s) => ({ ...s, answers: next }));
   };
 
-  // Fake question payloads — in a real app you load these from DB/api
+  
   const FAKE_PAYLOADS = {
-    'zuordnung-smalltexts': {
-      texts: [
-        { id: 'A', text: 'Kleiner Text A — Angebot' },
-        { id: 'B', text: 'Kleiner Text B — Info' },
-        { id: 'C', text: 'Kleiner Text C — Einladung' },
-        { id: 'D', text: 'Kleiner Text D — Notiz' },
-        { id: 'E', text: 'Kleiner Text E — Ankündigung' },
-      ],
-      sentences: Array.from({ length: 10 }).map((_, i) => ({ id: `s${i + 1}`, text: `Satz ${i + 1}` })),
-    },
-    'multiple-choice-continue': {
-      passage: 'Langer Text... (hier ein längerer Absatz als Beispiel).',
-      items: Array.from({ length: 5 }).map((_, i) => ({ id: `mc${i + 1}`, prompt: `Satz ${i + 1}`, options: ['A', 'B', 'C'] })),
-    },
-    'zuordnung-posters': { /* similar structure with poster images */ texts: [{id:'P1', text:'Poster 1'},{id:'P2',text:'Poster 2'},{id:'P3',text:'Poster 3'}], sentences: Array.from({length:6}).map((_,i)=>({id:`ps${i+1}`,text:`Satz ${i+1}`})) },
-    'grammar-mc': {
-      blanks: Array.from({ length: 10 }).map((_, i) => ({ id: `b${i + 1}`, before: '...', after: '...', options: ['Var1', 'Var2', 'Var3'] })),
-    },
-    'lexik-mc': {
-      blanks: Array.from({ length: 10 }).map((_, i) => ({ id: `l${i + 1}`, before: '...', after: '...', options: Array.from({ length: 5 }).map((_, j) => `W${j + 1}`) })),
-    },
-    'listening-30s-oneread': {
-      prompts: Array.from({ length: 10 }).map((_, i) => ({ id: `hp${i + 1}`, text: `Aussage ${i + 1}` })),
-      audioUrl: '/audio/sample1.mp3',
-    },
-    'listening-1min-twice': {
-      prompts: Array.from({ length: 10 }).map((_, i) => ({ id: `hp2_${i + 1}`, text: `Aussage ${i + 1}` })),
-      audioUrl: '/audio/sample2.mp3',
-    },
-    'listening-30s-twice': {
-      prompts: Array.from({ length: 5 }).map((_, i) => ({ id: `hp3_${i + 1}`, text: `Aussage ${i + 1}` })),
-      audioUrl: '/audio/sample3.mp3',
-    },
-    'writing-email': { prompt: 'Sehr geehrte/r..., ich schreibe Ihnen bezüglich ...' },
-  };
+  'zuordnung-smalltexts': TELC_B1_EXAM[0].payloads['zuordnung-smalltexts'],
+  'multiple-choice-continue': TELC_B1_EXAM[0].payloads['multiple-choice-continue'],
+  'zuordnung-posters': TELC_B1_EXAM[0].payloads['zuordnung-posters'],
+  'grammar-mc': TELC_B1_EXAM[0].payloads['grammar-mc'],
+  'lexik-mc': TELC_B1_EXAM[0].payloads['lexik-mc'],
+  'listening-30s-oneread': TELC_B1_EXAM[0].payloads['listening-30s-oneread'],
+  'listening-1min-twice': TELC_B1_EXAM[0].payloads['listening-1min-twice'],
+  'listening-30s-twice': TELC_B1_EXAM[0].payloads['listening-30s-twice'],
+  'writing-email': TELC_B1_EXAM[0].payloads['writing-email'],
+};
+
 
   const payload = FAKE_PAYLOADS[stage.type];
   switch (stage.type) {
@@ -426,21 +643,26 @@ export function ExamDetail({ exam, onBack }) {
   }
 
   function finishStage(index) {
-    setExamState((s) => ({
+  const stageId = exam.stages[index].id;
+  setExamState((s) => {
+    const prevStage = s.stages?.[stageId] || { answers: {} };
+    return {
       ...s,
       stages: {
         ...(s.stages || {}),
-        [exam.stages[index].id]: {
-          ...(s.stages?.[exam.stages[index].id] || {}),
+        [stageId]: {
+          ...prevStage,
           finishedAt: Date.now(),
-          answers: s.answers || {},
         },
       },
-    }));
-    setTimerRunning(false);
-  }
+    };
+  });
+  setTimerRunning(false);
+}
+
 
   function handleNext() {
+    console.log(exam.stages)
     if (currentStageIndex === null) return;
     finishStage(currentStageIndex);
     const next = currentStageIndex + 1;
@@ -592,6 +814,7 @@ export function ExamDetail({ exam, onBack }) {
             }));
             const total = stages.reduce((acc, st) => acc + Object.keys(st.answers || {}).length, 0);
             alert(`Final submit — you answered ${total} items. (Implement scoring on server)`);
+            console.log('Submitted exam data:', { examId: exam.id, stages });
           }}
           className="px-6 py-2 rounded-lg bg-emerald-600 text-white font-medium shadow-md hover:bg-emerald-700 transition"
         >
@@ -606,7 +829,8 @@ export function ExamDetail({ exam, onBack }) {
 /* --------------------------- Exams List UI ------------------------------- */
 import { motion } from "framer-motion";
 
-export function ExamsGallery({ exams = FAKE_EXAMS, onOpen }) {
+export function ExamsGallery({ exams = TELC_B1_EXAM, onOpen }) {
+  console.log(logo);
   return (
     <motion.div 
       initial={{ opacity: 0 }}
@@ -655,14 +879,35 @@ export function ExamsGallery({ exams = FAKE_EXAMS, onOpen }) {
 
 /* ------------------------ Top-level demo App ----------------------------- */
 export default function TelcExamApp() {
+  const [exams, setExams] = useState([]);
   const [selected, setSelected] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    async function fetchExams() {
+      try {
+        const res = await fetch("/api/getTelcExams");
+        if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
+        const data = await res.json();
+        setExams(data);
+      } catch (err) {
+        console.error("Failed to load exams:", err);
+        setError("Fehler beim Laden der Prüfungen.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchExams();
+  }, []);
+  
   return (
     <div className="max-w-6xl mx-auto p-6">
       <header className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold">telc Exam Center — Demo</h1>
       </header>
       {!selected ? (
-        <ExamsGallery exams={FAKE_EXAMS} onOpen={(e) => setSelected(e)} />
+        <ExamsGallery exams={TELC_B1_EXAM} onOpen={(e) => setSelected(e)} />
       ) : (
         <ExamDetail exam={selected} onBack={() => setSelected(null)} />
       )}
