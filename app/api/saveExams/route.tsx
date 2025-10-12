@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Pool } from "pg";
+import { getSession } from "@/lib/auth/session";
 
 // Configure the PostgreSQL connection
 const pool = new Pool({
@@ -8,18 +9,19 @@ const pool = new Pool({
 
 export async function POST(request: Request) {
   try {
+    const session = await getSession();
+    
+      if (!session?.user) {
+        return new Response("Unauthorized", { status: 401 });
+    }
+    
+    const user_id = session.user.id;
     const body = await request.json();
 
-    const { user_id, score, total_questions, duration_seconds, answers } = body;
+    const {score, answers } = body;
 
     // Validate required fields
-    if (
-      !user_id ||
-      typeof score !== "number" ||
-      typeof total_questions !== "number" ||
-      typeof duration_seconds !== "number" ||
-      !Array.isArray(answers)
-    ) {
+    if (!user_id || typeof score !== "number" || !Array.isArray(answers)) {
       return NextResponse.json(
         { error: "Missing or invalid fields." },
         { status: 400 }
@@ -27,19 +29,13 @@ export async function POST(request: Request) {
     }
 
     const query = `
-  INSERT INTO mock_exam_results 
-    (user_id, score, total_questions, duration_seconds, answers)
-  VALUES ($1, $2, $3, $4, $5)
-  RETURNING *;
-`;
+      INSERT INTO mock_exam_results 
+        (user_id, score, answers)
+      VALUES ($1, $2, $3)
+      RETURNING *;
+    `;
 
-    const values = [
-      user_id,
-      score,
-      total_questions,
-      duration_seconds,
-      JSON.stringify(answers),
-    ];
+    const values = [user_id, score, JSON.stringify(answers)];
 
     const result = await pool.query(query, values);
 

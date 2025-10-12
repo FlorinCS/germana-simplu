@@ -43,6 +43,13 @@
       "when": 1756150045108,
       "tag": "0005_puzzling_junta",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1760185001860,
+      "tag": "0006_dazzling_spyke",
+      "breakpoints": true
     }
   ]
 }
