@@ -1,0 +1,46 @@
+// /api/getExam/route.ts
+import { NextResponse } from "next/server";
+import { MongoClient, ObjectId } from "mongodb";
+import { getSession } from "@/lib/auth/session";
+
+export const dynamic = "force-dynamic";
+
+export async function GET(req) {
+  const client = new MongoClient(process.env.MONGODB_URI);
+
+  try {
+    const session = await getSession();
+    if (!session?.user) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    const url = new URL(req.url);
+    const examId = url.searchParams.get("id");
+
+    if (!examId) {
+      return new Response("Missing exam ID", { status: 400 });
+    }
+
+    await client.connect();
+    const database = client.db("germana");
+    const collection = database.collection("telc-exams");
+
+    const exam = await collection.findOne({ _id: examId });
+
+    if (!exam) {
+      return new Response("Exam not found", { status: 404 });
+    }
+
+    return NextResponse.json(exam, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
+    });
+  } catch (error) {
+    return NextResponse.json({ error: (error).message }, { status: 500 });
+  } finally {
+    await client.close();
+  }
+}

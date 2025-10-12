@@ -6,6 +6,7 @@ import { mockExamResults } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
+// app/api/exam-history/route.ts
 export async function GET() {
   const session = await getSession();
 
@@ -20,5 +21,7 @@ export async function GET() {
     .from(mockExamResults)
     .where(eq(mockExamResults.userId, userId));
 
-  return NextResponse.json({ exams });
+  // Return array directly
+  return NextResponse.json(exams);
 }
+

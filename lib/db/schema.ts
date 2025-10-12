@@ -29,8 +29,6 @@ export const mockExamResults = pgTable("mock_exam_results", {
     .notNull()
     .references(() => users.id),
   score: integer("score").notNull(),
-  totalQuestions: integer("total_questions").notNull(),
-  durationSeconds: integer("duration_seconds").notNull(),
   answers: jsonb("answers").notNull(), // array of answer objects
   submittedAt: timestamp("submitted_at").notNull().defaultNow(),
 });

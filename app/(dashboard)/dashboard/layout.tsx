@@ -144,7 +144,7 @@ export default function DashboardLayout({
       {/* Main content */}
       <main
         className={clsx(
-          "sm:overflow-y-auto pl-0 lg:pt-6 lg:pr-6 p-0  mt-14 lg:mt-0 h-screen bg-teal-800",
+          "sm:overflow-y-auto pl-0 lg:pt-6 lg:pr-6 p-0  mt-14 lg:mt-0 h-screen",
           expanded ? "lg:ml-64" : "lg:ml-20"
         )}
       >

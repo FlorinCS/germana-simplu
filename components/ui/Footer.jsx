@@ -1,6 +1,6 @@
 export default function Footer() {
   return (
-    <footer className=" pt-6 text-center text-white text-sm font-bold">
+    <footer className=" pt-6 text-center text-black text-sm font-bold bg-white">
       <p>
         © {new Date().getFullYear()} CloudPractitioner. All rights reserved.
       </p>
