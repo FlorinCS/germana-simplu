@@ -33,6 +33,16 @@ export const mockExamResults = pgTable("mock_exam_results", {
   submittedAt: timestamp("submitted_at").notNull().defaultNow(),
 });
 
+export const ExerciseResults = pgTable("exercise_results", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  exerciseId: integer("exercise_id").notNull(),
+  checked: integer("checked").notNull(),
+  submittedAt: timestamp("submitted_at").notNull().defaultNow(),
+});
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 100 }),

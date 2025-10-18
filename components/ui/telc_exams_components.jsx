@@ -763,27 +763,14 @@ function WritingEmail({ prompt, onSave, draft }) {
 }
 
 /* ------------------------- Stage Dispatcher ------------------------------ */
-function StageRenderer({ stage, state, setState, onNext }) {
+function StageRenderer({ stage, state, setState, payloads, onNext }) {
   const answers = state.answers || {};
   const setAnswer = (qid, val) => {
     const next = { ...answers, [qid]: val };
     setState((s) => ({ ...s, answers: next }));
   };
 
-  const FAKE_PAYLOADS = {
-    "zuordnung-smalltexts": TELC_B1_EXAM[0].payloads["zuordnung-smalltexts"],
-    "multiple-choice-continue":
-      TELC_B1_EXAM[0].payloads["multiple-choice-continue"],
-    "zuordnung-posters": TELC_B1_EXAM[0].payloads["zuordnung-posters"],
-    "grammar-mc": TELC_B1_EXAM[0].payloads["grammar-mc"],
-    "lexik-mc": TELC_B1_EXAM[0].payloads["lexik-mc"],
-    "listening-30s-oneread": TELC_B1_EXAM[0].payloads["listening-30s-oneread"],
-    "listening-1min-twice": TELC_B1_EXAM[0].payloads["listening-1min-twice"],
-    "listening-30s-twice": TELC_B1_EXAM[0].payloads["listening-30s-twice"],
-    "writing-email": TELC_B1_EXAM[0].payloads["writing-email"],
-  };
-
-  const payload = FAKE_PAYLOADS[stage.type];
+  const payload = payloads[stage.type];
   switch (stage.type) {
     case "zuordnung-smalltexts":
       return (
@@ -1206,7 +1193,7 @@ export function ExamDetail({ exam, onBack }) {
               </div>
             </div>
 
-            <StageRenderer
+            <StageRenderer payloads={exam.payloads}
               stage={exam.stages[currentStageIndex]}
               state={
                 examState.stages?.[exam.stages[currentStageIndex].id] || {
@@ -1290,7 +1277,7 @@ export function ExamDetail({ exam, onBack }) {
 import { motion } from "framer-motion";
 
 export function ExamsGallery({ exams = TELC_B1_EXAM, onOpen }) {
-  console.log(logo);
+  
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -1349,6 +1336,7 @@ export default function TelcExamApp() {
         const res = await fetch("/api/getTelcExams");
         if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
         const data = await res.json();
+        console.log("Fetched exams:", data);
         setExams(data);
       } catch (err) {
         console.error("Failed to load exams:", err);
@@ -1360,19 +1348,33 @@ export default function TelcExamApp() {
     fetchExams();
   }, []);
 
+  if (loading) {
+    return (
+      <div className="text-center py-12 text-gray-600">Lade Prüfungen...</div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12 text-red-500">{error}</div>
+    );
+  }
+
   return (
     <div className="max-w-6xl mx-auto p-6">
       <header className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold">telc Exam Center — Demo</h1>
       </header>
+
       {!selected ? (
-        <ExamsGallery exams={TELC_B1_EXAM} onOpen={(e) => setSelected(e)} />
+        <ExamsGallery exams={exams} onOpen={(e) => setSelected(e)} />
       ) : (
         <ExamDetail exam={selected} onBack={() => setSelected(null)} />
       )}
     </div>
   );
 }
+
 
 /* ---------------------------- DB SCHEMAS --------------------------------
 

@@ -24,9 +24,9 @@ import clsx from "clsx";
 
 // Lista de linkuri
 const navItems = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/dashboard/practice", icon: BookOpenCheck, label: "Practice" },
-  { href: "/dashboard/simulate", icon: FileClock, label: "Simulate" },
+  { href: "/dashboard", icon: LayoutDashboard, label: "Home" },
+  { href: "/dashboard/practice", icon: BookOpenCheck, label: "Übungen" },
+  { href: "/dashboard/simulate", icon: FileClock, label: "Prüfungen" },
   { href: "/dashboard/history", icon: History, label: "History" },
   { href: "/dashboard/flashcards", icon: Layers3, label: "Flashcards" },
   { href: "/dashboard/cheatsheet", icon: FileText, label: "Cheatsheet" },

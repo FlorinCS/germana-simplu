@@ -1,11 +1,10 @@
-// /api/getLessons/route.ts
 import { NextResponse } from "next/server";
 import { MongoClient } from "mongodb";
 import { getSession } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request) {
   const client = new MongoClient(process.env.MONGODB_URI);
 
   try {
@@ -14,14 +13,22 @@ export async function GET() {
       return new Response("Unauthorized", { status: 401 });
     }
 
+    const url = new URL(request.url);
+    const level = url.searchParams.get("level");
+    const type = url.searchParams.get("type");
+
     await client.connect();
     const database = client.db("germana");
-    const collection = database.collection("telc-exams");
+    const collection = database.collection("exercises");
 
-    // ✅ No prefix filtering — fetch ALL exams
-    const exams = await collection.find({}).toArray();
+    const query = {};
 
-    return NextResponse.json(exams, {
+    if (level) query.level = level;
+    if (type) query.type = type;
+
+    const items = await collection.find(query).toArray();
+
+    return NextResponse.json(items, {
       headers: {
         "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
         Pragma: "no-cache",
@@ -29,6 +36,7 @@ export async function GET() {
       },
     });
   } catch (error) {
+    console.error("Error fetching exercises:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   } finally {
     await client.close();
