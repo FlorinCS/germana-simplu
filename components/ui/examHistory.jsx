@@ -20,33 +20,43 @@ export default function ExamResultsSummary() {
         });
         if (!historyRes.ok) throw new Error("Failed to fetch exam history");
         const historyData = await historyRes.json();
-console.log("History Data:", historyData);
+
         const examsArr = [];
         const answersArr = [];
 
         for (const item of historyData || []) {
-          const examId = item.answers[0].examId;
-          console.log("Fetching exam details for examId:", item.answers[0].examId);
-          const examRes = await fetch(`${baseUrl}/api/getExam?id=${examId}`, {
-            cache: "no-store",
-          });
-          if (!examRes.ok) continue;
-          const examData = await examRes.json();
-          examsArr.push(examData);
+  const examId = item.answers?.[0]?.examId || item.examId;
+  if (!examId) continue;
 
-          item.answers.forEach((stageAnswer) => {
-            answersArr.push({
-              examId,
-              stageId: stageAnswer.stageId,
-              answers: stageAnswer.answers,
-            });
-          });
-        }
+  const examRes = await fetch(`${baseUrl}/api/getExam?id=${examId}`, {
+    cache: "no-store",
+  });
+  if (!examRes.ok) continue;
+  const examData = await examRes.json();
+
+  // ✅ give each attempt a unique key
+  const uniqueExam = {
+    ...examData,
+    attemptId: item.id,
+    createdAt: item.createdAt,
+  };
+console.log(uniqueExam)
+  examsArr.push(uniqueExam);
+
+  for (const stageAnswer of item.answers) {
+    answersArr.push({
+      examId: uniqueExam.attemptId, // ✅ link answers to this attempt
+      stageId: stageAnswer.stageId,
+      answers: stageAnswer.answers,
+    });
+  }
+}
+
 
         setExams(examsArr);
         setUserAnswers(answersArr);
       } catch (err) {
-        console.error(err);
+        console.error("Error loading exam results:", err);
       } finally {
         setLoading(false);
       }
@@ -58,102 +68,124 @@ console.log("History Data:", historyData);
   if (loading) return <p className="text-center mt-10">Loading exam results...</p>;
   if (!exams.length) return <p className="text-center mt-10">No exam results found.</p>;
 
+  // ✅ core logic to compare answers vs. correct ones
   const calculateResults = (exam, answersArray) => {
-    let totalCorrect = 0;
-    let totalQuestions = 0;
-    const stageResults = [];
+  const stageResults = [];
+  let totalCorrect = 0;
+  let totalQuestions = 0;
 
-    for (const stage of exam.stages) {
-      const stageId = stage.id;
-      const answerStage = answersArray.find((s) => s.stageId === stageId);
-      const payload = exam.payloads[stage.type];
-      if (!answerStage || !payload) continue;
+  for (const stage of exam.stages) {
+    const stageId = stage.id;
+    const userStage = answersArray.find(a => a.stageId === stageId);
 
-      const results = [];
-      let correctCount = 0;
-      let count = 0;
+    // Try to find payload if exists
+    const payload =
+      exam.payloads?.[stageId] ||
+      exam.payloads?.[stage.type] ||
+      exam.payloads?.[stage.title?.toLowerCase?.()] ||
+      null;
 
-      if (payload.solutions) {
-        for (const [qid, solution] of Object.entries(payload.solutions)) {
-          count++;
-          const userAns = answerStage.answers[qid];
-          const isCorrect = userAns === solution;
-          if (isCorrect) correctCount++;
-          results.push({ id: qid, text: qid, userAns, solution, isCorrect });
-        }
-      } else if (payload.items) {
+    const results = [];
+    let correctCount = 0;
+    let count = 0;
+
+    if (payload) {
+      // Items
+      if (payload.items) {
         for (const item of payload.items) {
-          count++;
-          const userAns = answerStage.answers[item.id];
-          const isCorrect = userAns === item.correct;
-          if (isCorrect) correctCount++;
-          results.push({
-            id: item.id,
-            text: item.prompt,
-            userAns: item.options[userAns],
-            solution: item.options[item.correct],
-            isCorrect,
-          });
-        }
-      } else if (payload.blanks) {
-        for (const blank of payload.blanks) {
-          count++;
-          const userAns = answerStage.answers[blank.id];
-          const isCorrect = userAns === blank.correct;
-          if (isCorrect) correctCount++;
-          results.push({
-            id: blank.id,
-            text: `${blank.before}_____${blank.after}`,
-            userAns,
-            solution: blank.correct,
-            isCorrect,
-          });
-        }
-      } else if (payload.prompts && payload.correctAnswers) {
-        for (let i = 0; i < payload.prompts.length; i++) {
-          const prompt = payload.prompts[i];
-          const qid = prompt.id;
-          const userAns = answerStage.answers[qid];
-          const correct = payload.correctAnswers[i] ? "true" : "false";
-          count++;
+          const qid = item.id || item.key || item.qid;
+          const userAns = userStage?.answers?.[qid];
+          const correct = item.correct;
           const isCorrect = userAns === correct;
-          if (isCorrect) correctCount++;
+          count++; if (isCorrect) correctCount++;
           results.push({
             id: qid,
-            text: prompt.text,
-            userAns: userAns === "true" ? "Richtig" : "Falsch",
-            solution: payload.correctAnswers[i] ? "Richtig" : "Falsch",
+            text: item.prompt || item.text || qid,
+            userAns: userAns ?? "—",
+            solution: item.options?.[correct] ?? correct ?? "—",
             isCorrect,
           });
         }
-      } else if (stage.type === "writing-email") {
-        results.push({
-          id: "brief",
-          text: "Schriftlicher Ausdruck",
-          userAns: answerStage.answers.draft,
-          solution: "Immer korrekt bewertet (manuelle Prüfung erforderlich)",
-          isCorrect: true,
-        });
-        correctCount = 1;
-        count = 1;
       }
-
-      totalCorrect += correctCount;
-      totalQuestions += count;
-
-      stageResults.push({
-        stageId,
-        title: stage.title,
-        correctCount,
-        count,
-        results,
-      });
+      // Solutions object
+      else if (payload.solutions) {
+        for (const [qid, correct] of Object.entries(payload.solutions)) {
+          const userAns = userStage?.answers?.[qid];
+          const isCorrect = userAns === correct;
+          count++; if (isCorrect) correctCount++;
+          results.push({
+            id: qid,
+            text: qid,
+            userAns: userAns ?? "—",
+            solution: correct ?? "—",
+            isCorrect,
+          });
+        }
+      }
+      // Blanks
+      else if (payload.blanks) {
+        for (const blank of payload.blanks) {
+          const qid = blank.id;
+          const userAns = userStage?.answers?.[qid];
+          const isCorrect = userAns === blank.correct;
+          count++; if (isCorrect) correctCount++;
+          results.push({
+            id: qid,
+            text: `${blank.before}_____${blank.after}`,
+            userAns: userAns ?? "—",
+            solution: blank.correct ?? "—",
+            isCorrect,
+          });
+        }
+      }
     }
 
-    const score = ((totalCorrect / totalQuestions) * 100).toFixed(1);
-    return { score, totalCorrect, totalQuestions, stageResults };
-  };
+    // If no payload, still show user answers or fallback
+    if ((!payload || results.length === 0) && userStage) {
+      for (const [qid, ans] of Object.entries(userStage.answers)) {
+        results.push({
+          id: qid,
+          text: qid,
+          userAns: ans,
+          solution: "(Korrekte Antwort unbekannt)",
+          isCorrect: false,
+        });
+        count++;
+      }
+    }
 
+    // If still nothing
+    if (results.length === 0) {
+      results.push({
+        id: "none",
+        text: "Keine Antworten vorhanden",
+        userAns: "—",
+        solution: "—",
+        isCorrect: false,
+      });
+      count = 0;
+    }
+
+    totalCorrect += correctCount;
+    totalQuestions += count;
+
+    stageResults.push({
+      stageId,
+      title: stage.title || stageId,
+      correctCount,
+      count,
+      results,
+    });
+  }
+
+  const score = totalQuestions ? ((totalCorrect / totalQuestions) * 100).toFixed(1) : "0.0";
+  return { score, totalCorrect, totalQuestions, stageResults };
+};
+
+
+
+
+  // ✅ render UI
   return (
     <div className="max-w-6xl mx-auto p-8">
       <div className="text-center mb-10">
@@ -165,25 +197,19 @@ console.log("History Data:", historyData);
 
       <div className="space-y-6">
         {exams.map((exam) => {
-          const answersArray = userAnswers
-            .filter((a) => a.examId === exam._id)
-            .map((a) => ({ stageId: a.stageId, answers: a.answers }));
+  const answersArray = userAnswers.filter((a) => a.examId === exam.attemptId);
+  const { score, totalCorrect, totalQuestions, stageResults } = calculateResults(exam, answersArray);
+  const isOpen = openExamId === exam.attemptId;
 
-          const { score, totalCorrect, totalQuestions, stageResults } = calculateResults(
-            exam,
-            answersArray
-          );
-
-          const isOpen = openExamId === exam._id;
-
+console.log(exam)
           return (
             <motion.div
-              key={exam._id}
+              key={exam.attemptId}
               layout
               className="rounded-2xl border border-gray-800 bg-gradient-to-b from-gray-900 to-gray-950 shadow-xl hover:shadow-2xl transition-all overflow-hidden"
             >
               <button
-                onClick={() => setOpenExamId(isOpen ? null : exam._id)}
+                onClick={() => setOpenExamId(isOpen ? null : exam.attemptId)}
                 className="w-full flex items-center justify-between p-6 hover:bg-gray-800/60 transition-all"
               >
                 <div className="flex flex-col items-start text-left">
@@ -203,7 +229,6 @@ console.log("History Data:", historyData);
                     </span>
                   </p>
                 </div>
-
                 <div className="flex items-center gap-3">
                   {score >= 80 && <Trophy className="text-yellow-400 w-5 h-5 animate-pulse" />}
                   {isOpen ? (
@@ -240,10 +265,7 @@ console.log("History Data:", historyData);
                           {st.results.map((r) => (
                             <motion.div
                               key={r.id}
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              transition={{ delay: 0.05 }}
-                              className={`flex justify-between items-start p-3 transition-all ${
+                              className={`flex justify-between items-start p-3 ${
                                 r.isCorrect
                                   ? "bg-green-900/10 border-l-4 border-green-500/40"
                                   : "bg-red-900/10 border-l-4 border-red-500/40"
@@ -253,11 +275,15 @@ console.log("History Data:", historyData);
                                 <p className="text-sm font-medium text-gray-100">{r.text}</p>
                                 <p className="text-xs text-gray-400 mt-1">
                                   Deine Antwort:{" "}
-                                  <span className={r.isCorrect ? "text-green-400" : "text-red-400"}>
+                                  <span
+                                    className={r.isCorrect ? "text-green-400" : "text-red-400"}
+                                  >
                                     {r.userAns || "—"}
                                   </span>
                                 </p>
-                                <p className="text-xs text-gray-500">Richtige Antwort: {r.solution}</p>
+                                <p className="text-xs text-gray-500">
+                                  Richtige Antwort: {r.solution}
+                                </p>
                               </div>
                               {r.isCorrect ? (
                                 <CheckCircle2 className="text-green-400 w-5 h-5 mt-1" />

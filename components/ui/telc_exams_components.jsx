@@ -1,422 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
 import logo from "@/assets/logos/B1.png";
-/*
-  telc-exams-components.jsx
-  Single-file collection of React components (Next.js + Tailwind-ready) that implement:
-  - Exams gallery (image + level + title)
-  - Exam detail page with description and "Start Exam" button
-  - Stage runner and per-stage components for all telc stages described by user
-  - Timer, audio controls (placeholders), responsive layout
-  - LocalStorage-based persistence (answers + progress)
-
-  Also contains:
-  - Fake seed data for exams
-  - Suggested DB schemas for MongoDB (NoSQL) and PostgreSQL (SQL)
-  - Example API route shapes (to be turned into real Next.js API routes)
-
-  How to use:
-  - Drop this file into a components/ or lib/ folder and import the exported components
-  - The main exported component below is `TelcExamApp` which demonstrates usage
-
-  Notes & limitations:
-  - Audio is mocked using placeholder URLs. Replace with real audio files for listening stages.
-  - The components are intentionally simple and focussed on state, styling, and flow.
-*/
-
-/* ----------------------------- FAKE DATA --------------------------------- */
-export const TELC_B1_EXAM = [
-  {
-    id: "telc-b1-1",
-    title: "telc deutsch b1 - practice set 1",
-    level: "B1",
-    cover: logo.src,
-    description:
-      "Full B1 exam simulation: Leseverstehen, Sprachbausteine, Hörverstehen, Schriftlicher Ausdruck. Timed sections and stage-by-stage navigation.",
-    stages: [
-      {
-        id: "lv1",
-        title: "Leseverstehen — Teil 1",
-        type: "zuordnung-smalltexts",
-        durationMin: 10,
-      },
-      {
-        id: "lv2",
-        title: "Leseverstehen — Teil 2",
-        type: "multiple-choice-continue",
-        durationMin: 12,
-      },
-      {
-        id: "lv3",
-        title: "Leseverstehen — Teil 3",
-        type: "zuordnung-posters",
-        durationMin: 8,
-      },
-      {
-        id: "sb1",
-        title: "Sprachbausteine — Teil 1",
-        type: "grammar-mc",
-        durationMin: 10,
-      },
-      {
-        id: "sb2",
-        title: "Sprachbausteine — Teil 2",
-        type: "lexik-mc",
-        durationMin: 12,
-      },
-      {
-        id: "hv1",
-        title: "Hörverstehen — Teil 1",
-        type: "listening-30s-oneread",
-        durationMin: 8,
-      },
-      {
-        id: "hv2",
-        title: "Hörverstehen — Teil 2",
-        type: "listening-1min-twice",
-        durationMin: 10,
-      },
-      {
-        id: "hv3",
-        title: "Hörverstehen — Teil 3",
-        type: "listening-30s-twice",
-        durationMin: 6,
-      },
-      {
-        id: "schrift",
-        title: "Schriftlicher Ausdruck",
-        type: "writing-email",
-        durationMin: 30,
-      },
-    ],
-    payloads: {
-      "zuordnung-smalltexts": {
-        texts: [
-          { id: "A", text: "Kleiner Text A — Angebot" },
-          { id: "B", text: "Kleiner Text B — Info" },
-          { id: "C", text: "Kleiner Text C — Einladung" },
-          { id: "D", text: "Kleiner Text D — Notiz" },
-          { id: "E", text: "Kleiner Text E — Ankündigung" },
-        ],
-        sentences: Array.from({ length: 10 }).map((_, i) => ({
-          id: `s${i + 1}`,
-          text: `Satz ${i + 1}`,
-        })),
-      },
-
-      "multiple-choice-continue": {
-        passage:
-          "Lisa lebt seit drei Jahren in Berlin. Sie arbeitet als Lehrerin an einer Grundschule und fährt jeden Morgen mit dem Fahrrad zur Arbeit. Nachmittags trifft sie oft ihre Freunde im Park oder geht ins Kino. Am Wochenende reist sie gern in andere Städte oder besucht ihre Familie auf dem Land.",
-        items: [
-          {
-            id: "mc1",
-            prompt: "Lisa arbeitet als...",
-            options: [
-              "Krankenschwester in einem Krankenhaus",
-              "Lehrerin an einer Grundschule",
-              "Verkäuferin in einem Supermarkt",
-            ],
-            correct: 1,
-          },
-          {
-            id: "mc2",
-            prompt: "Wie fährt Lisa normalerweise zur Arbeit?",
-            options: ["Mit dem Auto", "Mit dem Bus", "Mit dem Fahrrad"],
-            correct: 2,
-          },
-          {
-            id: "mc3",
-            prompt: "Was macht Lisa oft am Nachmittag?",
-            options: [
-              "Sie schläft zu Hause.",
-              "Sie trifft Freunde im Park.",
-              "Sie arbeitet bis spät am Abend.",
-            ],
-            correct: 1,
-          },
-          {
-            id: "mc4",
-            prompt: "Was macht Lisa am Wochenende gern?",
-            options: [
-              "Sie reist in andere Städte.",
-              "Sie arbeitet an neuen Projekten.",
-              "Sie macht immer Hausaufgaben.",
-            ],
-            correct: 0,
-          },
-          {
-            id: "mc5",
-            prompt: "Wo lebt Lisas Familie?",
-            options: [
-              "In der Stadt Berlin",
-              "Auf dem Land",
-              "In einem anderen Land",
-            ],
-            correct: 1,
-          },
-        ],
-      },
-
-      "zuordnung-posters": {
-        texts: [
-          { id: "P1", text: "Poster 1 — Musikfestival am Wochenende" },
-          { id: "P2", text: "Poster 2 — Neues Café eröffnet in der Stadt" },
-          { id: "P3", text: "Poster 3 — Flohmarkt am Sonntag" },
-        ],
-        sentences: Array.from({ length: 6 }).map((_, i) => ({
-          id: `ps${i + 1}`,
-          text: `Satz ${i + 1}`,
-        })),
-      },
-
-      "grammar-mc": {
-        blanks: [
-          {
-            id: "b1",
-            before: "Ich ",
-            after: " ins Kino.",
-            options: ["gehe", "geht", "gehst"],
-            correct: "gehe",
-          },
-          {
-            id: "b2",
-            before: "Wir ",
-            after: " Fußball.",
-            options: ["spiele", "spielen", "spielt"],
-            correct: "spielen",
-          },
-          {
-            id: "b3",
-            before: "Er ",
-            after: " sehr müde.",
-            options: ["bin", "ist", "sind"],
-            correct: "ist",
-          },
-        ],
-      },
-
-      "lexik-mc": {
-        blanks: [
-          {
-            id: "l1",
-            before: "Ich gehe gern ",
-            after: ", weil ich neue Orte sehen möchte.",
-            options: ["Reisen", "Arbeiten", "Einkaufen", "Lernen", "Spielen"],
-            correct: "Reisen",
-          },
-          {
-            id: "l2",
-            before: "Meine Mutter ist ",
-            after: " und arbeitet im Krankenhaus.",
-            options: [
-              "Lehrerin",
-              "Ärztin",
-              "Ingenieurin",
-              "Köchin",
-              "Verkäuferin",
-            ],
-            correct: "Ärztin",
-          },
-          {
-            id: "l3",
-            before: "Ich fahre jeden Tag mit dem ",
-            after: " zur Arbeit.",
-            options: ["Zug", "Auto", "Fahrrad", "Bus", "Flugzeug"],
-            correct: "Bus",
-          },
-          {
-            id: "l4",
-            before: "Am ",
-            after: " trinke ich gern Kaffee.",
-            options: ["Morgen", "Abend", "Mittag", "Nacht", "Frühstück"],
-            correct: "Morgen",
-          },
-          {
-            id: "l5",
-            before: "Ich wohne in einer kleinen ",
-            after: " mit Balkon.",
-            options: ["Haus", "Wohnung", "Garten", "Zimmer", "Balkon"],
-            correct: "Wohnung",
-          },
-          {
-            id: "l6",
-            before: "Am Wochenende sehe ich einen guten ",
-            after: ".",
-            options: ["Buch", "Film", "Musik", "Kunst", "Sport"],
-            correct: "Film",
-          },
-          {
-            id: "l7",
-            before: "Zum Frühstück esse ich oft ",
-            after: " und trinke Kaffee.",
-            options: ["Apfel", "Brot", "Käse", "Milch", "Wasser"],
-            correct: "Brot",
-          },
-          {
-            id: "l8",
-            before: "Im Urlaub fahre ich gern aufs ",
-            after: ", um Ruhe zu haben.",
-            options: ["Stadt", "Land", "Berg", "Meer", "Wald"],
-            correct: "Land",
-          },
-          {
-            id: "l9",
-            before: "Mein Lieblingshaustier ist der ",
-            after: ", er ist sehr freundlich.",
-            options: ["Hund", "Katze", "Vogel", "Fisch", "Pferd"],
-            correct: "Hund",
-          },
-          {
-            id: "l10",
-            before: "Im ",
-            after: " gehe ich oft schwimmen.",
-            options: ["Winter", "Sommer", "Herbst", "Frühling", "Regen"],
-            correct: "Sommer",
-          },
-        ],
-      },
-
-      "listening-30s-oneread": {
-        audioUrl: "/audio/sample1.mp3",
-        instructions:
-          "Höre den Text einmal. Danach siehst du 10 Aussagen. Entscheide, ob sie richtig oder falsch sind.",
-        prompts: [
-          { id: "hp1", text: "Lisa steht jeden Morgen um sechs Uhr auf." },
-          { id: "hp2", text: "Sie fährt mit dem Auto zur Arbeit." },
-          { id: "hp3", text: "In ihrer Freizeit liest sie gern Bücher." },
-          { id: "hp4", text: "Am Wochenende besucht sie oft ihre Freunde." },
-          { id: "hp5", text: "Sie arbeitet in einem Krankenhaus." },
-          { id: "hp6", text: "Ihr Lieblingsessen ist Pizza." },
-          { id: "hp7", text: "Lisa wohnt in einer kleinen Wohnung in Berlin." },
-          { id: "hp8", text: "Sie hört jeden Tag Musik beim Kochen." },
-          { id: "hp9", text: "Im Sommer fährt sie gern ans Meer." },
-          { id: "hp10", text: "Sie hat einen Hund, der Max heißt." },
-        ],
-        correctAnswers: [
-          true,
-          false,
-          true,
-          true,
-          false,
-          true,
-          true,
-          true,
-          true,
-          false,
-        ],
-        transcript: `Hallo! Mein Name ist Lisa und ich möchte euch ein bisschen über meinen Alltag erzählen. 
-Ich stehe jeden Morgen um sechs Uhr auf und frühstücke mit einer Tasse Kaffee und einem Stück Brot. 
-Danach fahre ich mit dem Fahrrad zur Arbeit, weil ich in der Nähe wohne. 
-Ich arbeite in einem Büro, nicht im Krankenhaus. 
-In meiner Freizeit lese ich gern Bücher oder treffe Freunde. 
-Am Wochenende besuche ich oft meine Freunde oder gehe spazieren. 
-Mein Lieblingsessen ist Pizza, aber ich koche auch gern selbst. 
-Ich wohne in einer kleinen Wohnung in Berlin und höre jeden Tag Musik beim Kochen. 
-Im Sommer fahre ich gern ans Meer, weil ich das Wasser liebe. 
-Tiere mag ich sehr, aber ich habe leider keinen Hund.`,
-      },
-
-      "listening-1min-twice": {
-        audioUrl: "/audio/sample2.mp3",
-        instructions:
-          "Du hörst eine Durchsage zweimal. Lies die Aussagen und entscheide, ob sie richtig oder falsch sind.",
-        prompts: [
-          {
-            id: "hp2_1",
-            text: "Der Zug nach München fährt heute von Gleis 5 ab.",
-          },
-          { id: "hp2_2", text: "Die Abfahrt ist um 18:30 Uhr." },
-          { id: "hp2_3", text: "Der Zug hält unterwegs auch in Augsburg." },
-          {
-            id: "hp2_4",
-            text: "Wegen technischer Probleme kommt es zu Verspätungen.",
-          },
-          {
-            id: "hp2_5",
-            text: "Fahrgäste mit Reservierung sollen zum Informationsschalter kommen.",
-          },
-          { id: "hp2_6", text: "Im Zug gibt es ein Bordrestaurant." },
-          {
-            id: "hp2_7",
-            text: "Kinder unter sechs Jahren reisen kostenlos mit.",
-          },
-          {
-            id: "hp2_8",
-            text: "Die nächste Verbindung nach München ist in zwei Stunden.",
-          },
-          { id: "hp2_9", text: "Alle Fahrgäste müssen Masken tragen." },
-          {
-            id: "hp2_10",
-            text: "Die Fahrgäste sollen ihre Tickets beim Einstieg bereithalten.",
-          },
-        ],
-        correctAnswers: [
-          true,
-          false,
-          true,
-          true,
-          false,
-          true,
-          true,
-          false,
-          false,
-          true,
-        ],
-        transcript: `Achtung, eine Durchsage. 
-Der Zug nach München fährt heute von Gleis 5 ab. 
-Die Abfahrt ist um 18 Uhr. 
-Der Zug hält unterwegs auch in Augsburg. 
-Wegen technischer Probleme kommt es zu einer Verspätung von etwa zehn Minuten. 
-Fahrgäste mit Reservierung müssen nichts unternehmen. 
-Im Zug befindet sich ein Bordrestaurant. 
-Kinder unter sechs Jahren reisen kostenlos mit. 
-Die nächste Verbindung nach München fährt um 20 Uhr. 
-Bitte halten Sie Ihre Tickets beim Einstieg bereit. Vielen Dank.`,
-      },
-
-      "listening-30s-twice": {
-        audioUrl:
-          "https://cdn.jsdelivr.net/gh/florincs/german-audio/telc-b1-1-03.mp3",
-        instructions:
-          "Du hörst den Text zweimal. Danach siehst du fünf Aussagen. Entscheide, ob sie richtig oder falsch sind.",
-        prompts: [
-          { id: "hp3_1", text: "Tom arbeitet in einem Café." },
-          { id: "hp3_2", text: "Er steht jeden Tag um fünf Uhr auf." },
-          { id: "hp3_3", text: "Am Nachmittag spielt er gern Gitarre." },
-          { id: "hp3_4", text: "Er trinkt keinen Kaffee." },
-          { id: "hp3_5", text: "Am Sonntag besucht er seine Familie." },
-        ],
-        correctAnswers: [false, true, true, false, true],
-        transcript: `Hallo, ich bin Tom. Ich arbeite nicht in einem Café, sondern in einer kleinen Bäckerei im Zentrum. 
-Mein Tag beginnt sehr früh – meistens schon um fünf Uhr morgens. 
-Ich backe Brot, Brötchen und manchmal Kuchen. 
-Am Nachmittag habe ich frei. Dann höre ich Musik oder spiele Gitarre mit meinen Freunden. 
-Ich liebe Kaffee und trinke oft eine Tasse in meiner Pause. 
-Am Sonntag habe ich immer frei und besuche meine Familie. Das ist für mich sehr wichtig.`,
-      },
-
-      "writing-email": {
-        prompt: `Betreff: Einladung zum Sommerfest 🌞  
-Von: Anna.Meyer@example.com  
-An: [Ihre E-Mail-Adresse]
-
-Liebe/r [Name],
-
-nächste Woche am Samstag feiern wir in unserem Deutschkurs ein kleines Sommerfest im Park. 
-Jede Person soll etwas zu essen oder zu trinken mitbringen. 
-Bitte schreiben Sie mir eine kurze E-Mail und sagen Sie mir:
-
-- ob Sie kommen können,  
-- was Sie mitbringen,  
-- und ob Sie beim Aufbau helfen können.
-
-Ich freue mich auf Ihre Antwort!
-
-Viele Grüße  
-Anna Meyer`,
-      },
-    },
-  },
-];
 
 /* ----------------------------- HELPERS ---------------------------------- */
 const saveToStorage = (key, value) => {
@@ -433,6 +16,10 @@ const loadFromStorage = (key, fallback) => {
   } catch (e) {
     return fallback;
   }
+};
+
+const emptyExamState = () => {
+  localStorage.setItem("examState:undefined", JSON.stringify({}));
 };
 
 /* --------------------------- Timer Component ----------------------------- */
@@ -558,29 +145,35 @@ function MultipleChoiceContinue({
         Satznummer.
       </p>
       <div className="bg-white/5 p-4 rounded">
-        <div className="prose max-w-none">{passage}</div>
+        <div className="prose max-w-none text-lg">{passage}</div>
       </div>
-      <ul className="space-y-3">
+      <ul className="space-y-4">
         {items.map((it) => (
           <li
             key={it.id}
-            className="p-3 border rounded flex flex-col md:flex-row md:items-center md:justify-between"
+            className="p-5 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all duration-200
+                 flex flex-col gap-4 shadow-sm hover:shadow-md"
           >
-            <div className="mb-2 md:mb-0">{it.prompt}</div>
-            <div className="flex gap-2">
-              {it.options.map((opt, i) => (
-                <button
-                  key={i}
-                  onClick={() => onAnswer(it.id, i)}
-                  className={`px-3 py-1 rounded ${
-                    answers[it.id] === i
-                      ? "bg-indigo-600 text-white"
-                      : "bg-white/5"
-                  }`}
-                >
-                  {opt}
-                </button>
-              ))}
+            <div className="text-base font-medium">{it.prompt}</div>
+
+            <div className="flex flex-col gap-2">
+              {it.options.map((opt, i) => {
+                const isSelected = answers[it.id] === i;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => onAnswer(it.id, i)}
+                    className={`w-full text-left px-4 py-2 rounded-lg text-sm font-medium border transition-all duration-200
+                ${
+                  isSelected
+                    ? "bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-500/30"
+                    : "bg-white/10 border border-indigo-200 hover:bg-indigo-500/20 hover:border-indigo-400/50"
+                }`}
+                  >
+                    {opt}
+                  </button>
+                );
+              })}
             </div>
           </li>
         ))}
@@ -597,14 +190,14 @@ function GrammarMC({ stageId, text, blanks, onAnswer, answers }) {
         Ergänze das Textfeld mit der richtigen Option für jede Lücke.
       </p>
       <div className="bg-white/5 p-4 rounded">
-        <p className="prose max-w-none">
+        <p className="prose max-w-none text-lg">
           {blanks.map((b) => (
-            <span key={b.id} className="inline-block align-middle">
+            <span key={b.id} className="align-middle">
               {b.before}
               <select
                 value={answers[b.id] ?? ""}
                 onChange={(e) => onAnswer(b.id, e.target.value)}
-                className="mx-1"
+                className="mx-1 cursor-pointer"
               >
                 <option value="">—</option>
                 {b.options.map((o, i) => (
@@ -613,7 +206,7 @@ function GrammarMC({ stageId, text, blanks, onAnswer, answers }) {
                   </option>
                 ))}
               </select>
-              {b.after}
+              {b.after} &nbsp;
             </span>
           ))}
         </p>
@@ -742,12 +335,15 @@ function WritingEmail({ prompt, onSave, draft }) {
         und Struktur.
       </p>
       <div className="bg-white/5 p-4 rounded">
-        <div className="prose max-w-none mb-3">{prompt}</div>
+        <div
+          className="prose max-w-none mb-3"
+          dangerouslySetInnerHTML={{ __html: prompt ?? defaultPrompt }}
+        />
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={12}
-          className="w-full p-3 rounded bg-white/5"
+          className="w-full p-3 rounded bg-white/5 border border-indigo-200"
         />
         <div className="flex justify-end gap-2">
           <button
@@ -823,10 +419,11 @@ function StageRenderer({ stage, state, setState, payloads, onNext }) {
     case "listening-30s-oneread":
       return (
         <ListeningStage
+          key={stage.id}
           stageId={stage.id}
           prompts={payload.prompts}
           audioUrl={payload.audioUrl}
-          readTimeSec={30}
+          readTimeSec={3}
           repeats={1}
           onAnswer={setAnswer}
           answers={answers}
@@ -835,10 +432,11 @@ function StageRenderer({ stage, state, setState, payloads, onNext }) {
     case "listening-1min-twice":
       return (
         <ListeningStage
+          key={stage.id}
           stageId={stage.id}
           prompts={payload.prompts}
           audioUrl={payload.audioUrl}
-          readTimeSec={60}
+          readTimeSec={6}
           repeats={2}
           onAnswer={setAnswer}
           answers={answers}
@@ -847,6 +445,7 @@ function StageRenderer({ stage, state, setState, payloads, onNext }) {
     case "listening-30s-twice":
       return (
         <ListeningStage
+          key={stage.id}
           stageId={stage.id}
           prompts={payload.prompts}
           audioUrl={payload.audioUrl}
@@ -886,7 +485,8 @@ export function ExamDetail({ exam, onBack }) {
 
   useEffect(
     () => saveToStorage(`examState:${exam.id}`, examState),
-    [examState]
+    [examState],
+    console.log("this is state")
   );
 
   function startStage(index) {
@@ -941,7 +541,7 @@ export function ExamDetail({ exam, onBack }) {
   }
 
   const playSuccessSound = () => {
-    const audio = new Audio('/sounds/success.wav');
+    const audio = new Audio("/sounds/success.wav");
     audio.volume = 0.5;
     audio.play();
   };
@@ -1042,49 +642,49 @@ export function ExamDetail({ exam, onBack }) {
     return { score, totalCorrect, totalQuestions, stageResults };
   };
 
- async function handleSubmit() {
-  playSuccessSound();
+  async function handleSubmit() {
+    playSuccessSound();
 
-  // Calculate real score
-  const { score, totalCorrect, totalQuestions, stageResults } = calculateResults(
-    exam,
-    exam.stages.map((s) => ({
-      id: s.id,
+    // Calculate real score
+    const { score, totalCorrect, totalQuestions, stageResults } =
+      calculateResults(
+        exam,
+        exam.stages.map((s) => ({
+          id: s.id,
+          answers: examState.stages?.[s.id]?.answers || {},
+        }))
+      );
+    console.log(exam);
+    setFinalScore(score);
+    setShowResult(true);
+
+    // Prepare answers payload and include examId
+    const answersPayload = exam.stages.map((s) => ({
+      stageId: s.id,
       answers: examState.stages?.[s.id]?.answers || {},
-    }))
-  );
-  console.log(exam);
-  setFinalScore(score);
-  setShowResult(true);
+      examId: exam.id, // added examId here
+    }));
 
-  // Prepare answers payload and include examId
-  const answersPayload = exam.stages.map((s) => ({
-    stageId: s.id,
-    answers: examState.stages?.[s.id]?.answers || {},
-    examId: exam.id, // added examId here
-  }));
+    try {
+      const res = await fetch("/api/saveExams", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          examId: exam._id, // send examId at top level too
+          score: Math.round(Number(score)), // convert to integer
+          answers: answersPayload,
+        }),
+      });
 
-  try {
-    const res = await fetch("/api/saveExams", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        examId: exam._id,         // send examId at top level too
-        score: Math.round(Number(score)), // convert to integer
-        answers: answersPayload,
-      }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to save exam");
-    console.log("Saved exam result:", data);
-  } catch (error) {
-    console.error("Error saving exam:", error);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save exam");
+      console.log("Saved exam result:", data);
+    } catch (error) {
+      console.error("Error saving exam:", error);
+    }
   }
-}
-
 
   return (
     <>
@@ -1105,16 +705,16 @@ export function ExamDetail({ exam, onBack }) {
           <div className="flex gap-2 items-center">
             <button
               onClick={onBack}
-              className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
+              className="cursor-pointer px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
             >
-              ← Back
+              ← Zurück
             </button>
             {currentStageIndex === null ? (
               <button
                 onClick={() => startStage(0)}
-                className="px-6 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium shadow-md hover:from-indigo-700 hover:to-purple-700 transition"
+                className="cursor-pointer px-6 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium shadow-md hover:from-indigo-700 hover:to-purple-700 transition"
               >
-                Start Exam
+                Prüfung starten
               </button>
             ) : (
               <div className="flex items-center gap-2">
@@ -1193,7 +793,8 @@ export function ExamDetail({ exam, onBack }) {
               </div>
             </div>
 
-            <StageRenderer payloads={exam.payloads}
+            <StageRenderer
+              payloads={exam.payloads}
               stage={exam.stages[currentStageIndex]}
               state={
                 examState.stages?.[exam.stages[currentStageIndex].id] || {
@@ -1277,52 +878,91 @@ export function ExamDetail({ exam, onBack }) {
 import { motion } from "framer-motion";
 
 export function ExamsGallery({ exams = TELC_B1_EXAM, onOpen }) {
-  
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-    >
-      {exams.map((ex) => (
-        <motion.div
-          key={ex.id}
-          whileHover={{ scale: 1.02 }}
-          className="bg-white rounded-2xl overflow-hidden shadow-md border hover:shadow-xl transition-all duration-300 flex flex-col"
-        >
-          <div className="relative h-44 w-full">
-            <img
-              src={ex.cover}
-              alt={ex.title}
-              className="object-cover h-full w-full transform hover:scale-105 transition-transform duration-500"
-            />
-            <span className="absolute top-3 left-3 bg-indigo-600 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-md">
-              {ex.level}
-            </span>
-          </div>
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
-          <div className="p-5 flex flex-col flex-grow">
-            <h3 className="font-bold text-lg text-gray-900 truncate">
-              {ex.title}
-            </h3>
-            <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-              {ex.description || "Prüfungsvorbereitung für Ihr Sprachniveau."}
-            </p>
-            <div className="mt-4 flex justify-end">
-              <button
-                onClick={() => onOpen(ex)}
-                className="px-4 py-2 text-sm font-medium rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md hover:from-indigo-700 hover:to-purple-700 transition"
-              >
-                Starten
-              </button>
+  const handleStart = (ex) => {
+    try {
+      emptyExamState(); // reset localStorage key
+      onOpen(ex);       // open selected exam
+    } catch (err) {
+      console.error("Error starting exam:", err);
+    }
+  };
+
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentExams = exams.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(exams.length / itemsPerPage);
+
+  return (
+    <div>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4 }}
+        className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+      >
+        {currentExams.map((ex) => (
+          <motion.div
+            key={ex.id}
+            whileHover={{ scale: 1.02 }}
+            className="bg-white rounded-2xl overflow-hidden shadow-md border hover:shadow-xl transition-all duration-300 flex flex-col"
+          >
+            <div className="relative h-44 w-full">
+              <img
+                src={ex.cover}
+                alt={ex.title}
+                className="object-cover h-full w-full transform hover:scale-105 transition-transform duration-500"
+              />
+              <span className="absolute top-3 left-3 bg-indigo-600 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-md">
+                {ex.level}
+              </span>
             </div>
-          </div>
-        </motion.div>
-      ))}
-    </motion.div>
+
+            <div className="p-5 flex flex-col flex-grow">
+              <h3 className="font-bold text-lg text-gray-900 truncate">
+                {ex.title}
+              </h3>
+              <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                {ex.description || "Prüfungsvorbereitung für Ihr Sprachniveau."}
+              </p>
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => handleStart(ex)}
+                  className="cursor-pointer px-4 py-2 text-sm font-medium rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md hover:from-indigo-700 hover:to-purple-700 transition"
+                >
+                  Starten
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </motion.div>
+
+      {/* Pagination controls */}
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-6 space-x-2">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+            <button
+              key={page}
+              onClick={() => setCurrentPage(page)}
+              className={`px-3 py-1 rounded-md border ${
+                page === currentPage
+                  ? "bg-indigo-600 text-white"
+                  : "bg-white text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              {page}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
+
 /* ------------------------ Top-level demo App ----------------------------- */
 export default function TelcExamApp() {
   const [exams, setExams] = useState([]);
@@ -1355,9 +995,7 @@ export default function TelcExamApp() {
   }
 
   if (error) {
-    return (
-      <div className="text-center py-12 text-red-500">{error}</div>
-    );
+    return <div className="text-center py-12 text-red-500">{error}</div>;
   }
 
   return (
@@ -1374,7 +1012,6 @@ export default function TelcExamApp() {
     </div>
   );
 }
-
 
 /* ---------------------------- DB SCHEMAS --------------------------------
 
