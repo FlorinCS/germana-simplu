@@ -197,7 +197,7 @@ function GrammarMC({ stageId, text, blanks, onAnswer, answers }) {
               <select
                 value={answers[b.id] ?? ""}
                 onChange={(e) => onAnswer(b.id, e.target.value)}
-                className="mx-1 cursor-pointer"
+                className="mx-1 cursor-pointer border-b border-black"
               >
                 <option value="">—</option>
                 {b.options.map((o, i) => (
@@ -486,7 +486,6 @@ export function ExamDetail({ exam, onBack }) {
   useEffect(
     () => saveToStorage(`examState:${exam.id}`, examState),
     [examState],
-    console.log("this is state")
   );
 
   function startStage(index) {
@@ -654,7 +653,6 @@ export function ExamDetail({ exam, onBack }) {
           answers: examState.stages?.[s.id]?.answers || {},
         }))
       );
-    console.log(exam);
     setFinalScore(score);
     setShowResult(true);
 
@@ -951,7 +949,7 @@ export function ExamsGallery({ exams = TELC_B1_EXAM, onOpen }) {
               className={`px-3 py-1 rounded-md border ${
                 page === currentPage
                   ? "bg-indigo-600 text-white"
-                  : "bg-white text-gray-700 hover:bg-gray-100"
+                  : "bg-white text-gray-700 hover:bg-gray-100 cursor-pointer"
               }`}
             >
               {page}
@@ -976,7 +974,6 @@ export default function TelcExamApp() {
         const res = await fetch("/api/getTelcExams");
         if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
         const data = await res.json();
-        console.log("Fetched exams:", data);
         setExams(data);
       } catch (err) {
         console.error("Failed to load exams:", err);
